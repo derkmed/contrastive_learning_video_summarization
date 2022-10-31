@@ -3,9 +3,9 @@ import torch.nn as nn
 import torch
 import torchvision
 from torchsummary import summary
-from r3d import r3d_18
-from r3d_prp import R3DNet
-from mlp import mlp
+from tclr_pretraining.r3d import r3d_18
+from tclr_pretraining.r3d_prp import R3DNet
+from tclr_pretraining.mlp import mlp
 
 def build_r3d_backbone(): #Official PyTorch R3D-18 model taken from https://github.com/pytorch/vision/blob/master/torchvision/models/video/resnet.py
     

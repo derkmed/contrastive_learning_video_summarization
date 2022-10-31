@@ -7,10 +7,10 @@ from torch.optim.lr_scheduler import *
 import time
 import os
 import numpy as np
-from model import build_r3d_backbone, build_r3d_mlp, load_r3d_mlp
-import parameters as params
-import config as cfg
-from dl_tclr import ss_dataset_gen1, collate_fn2
+from tclr_pretraining.model import build_r3d_backbone, build_r3d_mlp, load_r3d_mlp
+import tclr_pretraining.parameters as params
+import tclr_pretraining.config as cfg
+from tclr_pretraining.dl_tclr import ss_dataset_gen1, collate_fn2
 import sys, traceback
 from sklearn.metrics import precision_recall_fscore_support, average_precision_score
 from tensorboardX import SummaryWriter

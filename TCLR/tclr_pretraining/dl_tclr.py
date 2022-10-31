@@ -7,10 +7,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
-import config as cfg
+import tclr_pretraining.config as cfg
+import tclr_pretraining.parameters as params
+
 import random
 import pickle
-import parameters as params
 import json
 import math
 import cv2
@@ -50,7 +51,7 @@ class ss_dataset_gen1(Dataset):
     def __len__(self):
         return len(self.data)        
 
-    def __getitem__(self,index):
+    def __getitem__(self, index):
         sparse_clip, dense_clip0, dense_clip1, dense_clip2, dense_clip3, \
                 a_sparse_clip, a_dense_clip0, a_dense_clip1, a_dense_clip2, a_dense_clip3, list_sparse, list_dense, vid_path = self.process_data(index)
         return sparse_clip, dense_clip0, dense_clip1, dense_clip2, dense_clip3, \
@@ -70,14 +71,14 @@ class ss_dataset_gen1(Dataset):
     def build_clip(self, vid_path):
 
         try:
-            cap = cv2.VideoCapture(vid_path)
-            cap.set(1, 0)
-            frame_count = cap.get(7)
+            cap = cv2.VideoCapture(vid_path) # Refer to https://docs.opencv.org/3.4/d4/d15/group__videoio__flags__base.html#ggaeb8dd9c89c10a5c63c139bf7c4f5704dadadc646b31cfd2194794a3a80b8fa6c2 .
+            cap.set(1, 0)                 #  cv.CAP_ANY
+            frame_count = cap.get(7)      # cv.CAP_PROP_FRAME_COUNT
             if frame_count <= 56:
                 # print(f'Video {vid_path} has insufficient frames')
                 return None, None, None, None, None, None, None, None, None, None, None, None
             ############################# frame_list maker start here#################################
-            min_temporal_span_sparse = params.num_frames*params.sr_ratio
+            min_temporal_span_sparse = params.num_frames * params.sr_ratio
             if frame_count > min_temporal_span_sparse:
                 start_frame = np.random.randint(0,frame_count-min_temporal_span_sparse)
                 
@@ -262,6 +263,9 @@ class ss_dataset_gen1(Dataset):
         return image
 
 def collate_fn2(batch):
+    '''
+    The function passed as the collate_fn argument into a DataLoader is used to collate lists of samples into batches.
+    '''
 
     sparse_clip, dense_clip0, dense_clip1, dense_clip2, dense_clip3, a_sparse_clip, \
     a_dense_clip0, a_dense_clip1, a_dense_clip2, a_dense_clip3, \

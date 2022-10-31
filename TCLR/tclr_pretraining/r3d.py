@@ -4,7 +4,11 @@
 import torch
 import torch.nn as nn
 
-from torchvision.models.utils import load_state_dict_from_url
+# The following is the original import.
+# from torchvision.models.utils import load_state_dict_from_url
+# The following works for colab environments.
+from torch.hub import load_state_dict_from_url
+
 from torch.cuda.amp import autocast
 
 __all__ = ['r3d_18', 'mc3_18', 'r2plus1d_18']
