@@ -78,9 +78,10 @@ class ss_dataset_gen1(Dataset):
                 # print(f'Video {vid_path} has insufficient frames')
                 return None, None, None, None, None, None, None, None, None, None, None, None
             ############################# frame_list maker start here#################################
-            min_temporal_span_sparse = params.num_frames * params.sr_ratio
+            min_temporal_span_sparse = params.num_frames * params.sr_ratio     # 64
             if frame_count > min_temporal_span_sparse:
-                start_frame = np.random.randint(0,frame_count-min_temporal_span_sparse)
+                # If there are enough frames, choose a random starting frame.
+                start_frame = np.random.randint(0,frame_count-min_temporal_span_sparse) 
                 
                 #Dynamic skip rate experiment
                 # skip_max = int((frame_count - start_frame)/params.num_frames)
@@ -99,7 +100,9 @@ class ss_dataset_gen1(Dataset):
                 sr_sparse = 4
             sr_dense = int(sr_sparse/4)
             
+            # frames_sparse will include every other (skip-rate) `sr_sparse`-th frame (e.g. every 4th frame for params.num_frames ≤ frame_count).
             frames_sparse = [start_frame] + [start_frame + i*sr_sparse for i in range(1,params.num_frames)]
+            # frames_dense will include the skipped frames also, but broken into 4 contiguous sections. TODO: Maybe make 4 a hyperparameter?
             frames_dense = [[frames_sparse[j*4]]+[frames_sparse[j*4] + i*sr_dense for i in range(1,params.num_frames)] for j in range(4)]            
 
             ################################ frame list maker finishes here ###########################
