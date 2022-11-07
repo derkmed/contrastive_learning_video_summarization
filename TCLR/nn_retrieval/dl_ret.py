@@ -4,10 +4,10 @@ import numpy as np
 # import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
-import config as cfg
+import nn_retrieval.config as cfg
 import random
 import pickle
-import parameters_BL as params
+import nn_retrieval.parameters_BL as params
 import json
 import math
 import cv2
@@ -81,7 +81,8 @@ class multi_baseline_dataloader_train_strong(Dataset):
             skip_frames_full = params.fix_skip 
             left_over = skip_frames_full*n
             F = N - left_over
-
+            # TODO: This one I don't understand. It splits the frame into params.num_modes subsegments
+            # and chooses the starting frame to be self.mode...?
             start_frame_full = 0 + int(np.linspace(0,F-10,params.num_modes)[self.mode])
 
             

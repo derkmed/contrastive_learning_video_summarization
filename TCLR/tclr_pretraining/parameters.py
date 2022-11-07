@@ -9,6 +9,7 @@ temperature = 0.1
 weight_decay = 1e-9
 sr_ratio = 4
 
+# Original resolution parameters below.
 ori_reso_h = 240
 ori_reso_w = 320
 

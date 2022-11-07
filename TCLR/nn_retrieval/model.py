@@ -4,10 +4,12 @@ import torch
 import torchvision
 from torchsummary import summary
 # from r3d import r3d_18
-from r3d_classifier_ret import r3d_18_classifier, rpd18_classifier
+from nn_retrieval.r3d_classifier_ret import r3d_18_classifier, rpd18_classifier
 # from r3d import mlp
 
-from torchvision.models.utils import load_state_dict_from_url
+# from torchvision.models.utils import load_state_dict_from_url
+# The following works for colab environments.
+from torch.hub import load_state_dict_from_url
 
 def build_r3d_classifier(num_classes = 102, kin_pretrained = False, self_pretrained = True, saved_model_file = None, linear = True):
     model = r3d_18_classifier(pretrained = kin_pretrained, progress = False)

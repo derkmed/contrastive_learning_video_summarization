@@ -69,6 +69,13 @@ class ss_dataset_gen1(Dataset):
 
 
     def build_clip(self, vid_path):
+        '''
+        Builds a (1) sparse clip that includes every `params.sr_ratio`-th frame for `params.num_frames` frames, (2) dense clips that span the 
+        same length (in frames) of the sparse clip, but with `params.num_frames` contiguous frames broken up into 4 contiguous subsections and (3) the
+        augmentations of the sparse clip and 4 dense clips. 
+        
+        Also returns a list of the frames in the sparse clip and all the frames in each of the 4 dense clips.
+        '''
 
         try:
             cap = cv2.VideoCapture(vid_path) # Refer to https://docs.opencv.org/3.4/d4/d15/group__videoio__flags__base.html#ggaeb8dd9c89c10a5c63c139bf7c4f5704dadadc646b31cfd2194794a3a80b8fa6c2 .
@@ -124,7 +131,8 @@ class ss_dataset_gen1(Dataset):
             list_sparse = []
             list_dense = [[] for i in range(4)]
             count = -1
-            
+
+            # All augmentations randomly sample 10 times because we have 2 augmentations * 1 sparse frame + 2 augmentations * 4 dense frames.
             random_array = np.random.rand(10,8)
             x_erase = np.random.randint(0,params.reso_h, size = (10,))
             y_erase = np.random.randint(0,params.reso_w, size = (10,))
@@ -225,6 +233,7 @@ class ss_dataset_gen1(Dataset):
         except:
             print(f'Clip {vid_path} has some unknown issue, failed')
             return None, None, None, None, None, None, None, None, None, None, None, None
+
     def augmentation(self, image, random_array, x_erase, y_erase, cropping_factor1,\
         x0, y0, contrast_factor1, hue_factor1, saturation_factor1, brightness_factor1,\
         gamma1,erase_size1,erase_size2, random_color_dropped):

@@ -15,7 +15,7 @@ from model import *
 import parameters_BL as params
 import config as cfg
 # from DL_ishanv3 import *
-from dl_ret import *
+from nn_retrieval.dl_ret import *
 import sys, traceback
 from sklearn.metrics import precision_recall_fscore_support, average_precision_score
 from tensorboardX import SummaryWriter
@@ -183,13 +183,15 @@ def train_classifier(run_id, arch, m_file_name, num_modes):
                 validation_dataset = multi_baseline_dataloader_val_strong(shuffle = True, data_percentage = params.data_percentage,\
                             mode = modes[val_iter], skip = skip[val_iter], hflip= hflip[val_iter], \
                             cropping_factor= cropping_fac[val_iter])
-                validation_dataloader = DataLoader(validation_dataset, batch_size=params.v_batch_size, shuffle=True, num_workers=params.num_workers, collate_fn=collate_fn2)
+                validation_dataloader = DataLoader(validation_dataset, batch_size=params.v_batch_size, 
+                            shuffle=True, num_workers=params.num_workers, collate_fn=collate_fn2)
                 if val_iter ==0:
                     print(f'Validation dataset length: {len(validation_dataset)}')
                     print(f'Validation dataset steps per epoch: {len(validation_dataset)/params.v_batch_size}')    
                 
-                pred_dict, label_dict = val_epoch(len(modes), run_id, epoch,modes[val_iter],skip[val_iter],hflip[val_iter],cropping_fac[val_iter], \
-                                                                    pred_dict, label_dict, validation_dataloader, model, criterion, writer, use_cuda)
+                pred_dict, label_dict = val_epoch(len(modes), run_id, epoch,
+                                            modes[val_iter],skip[val_iter],hflip[val_iter],cropping_fac[val_iter], \
+                                            pred_dict, label_dict, validation_dataloader, model, criterion, writer, use_cuda)
             
             os.makedirs('./'+str(run_id) + '_retrieval')
             pickle.dump(pred_dict, open('./'+str(run_id) + '_retrieval/'+str(run_id)+ '_val_pred_dict.pkl','wb'))
