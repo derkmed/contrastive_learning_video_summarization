@@ -2,7 +2,7 @@ import numpy as np
 import torch.nn as nn
 import torch
 import torchvision
-from r3d_classifier import r3d_18_classifier
+from linear_eval.r3d_classifier import r3d_18_classifier
 
 
 # from r2p1d import r2plus1d_18, embedder

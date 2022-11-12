@@ -7,9 +7,9 @@ from torch.optim.lr_scheduler import *
 import time
 import os
 import numpy as np
-from model import build_r3d_classifier, load_r3d_classifier
-import parameters_BL as params
-import config as cfg
+from linear_eval.model import build_r3d_classifier, load_r3d_classifier
+import linear_eval.parameters_BL as params
+import linear_eval.config as cfg
 from dl_linear import *
 import sys, traceback
 from sklearn.metrics import precision_recall_fscore_support, average_precision_score

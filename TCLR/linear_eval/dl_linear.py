@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
-import config as cfg
+import linear_eval.config as cfg
 import random
 import pickle
 import parameters_BL as params
