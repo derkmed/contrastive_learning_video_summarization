@@ -147,7 +147,7 @@ class multi_baseline_dataloader_train_strong(Dataset):
 class multi_baseline_dataloader_val_strong(Dataset):
 
     def __init__(self,  split = 1, shuffle = True, data_percentage = 1.0, mode = 0, skip = 1, \
-                hflip=0, cropping_factor=1.0,  split = 1):
+                hflip=0, cropping_factor=1.0):
         if split == 1:
             self.all_paths = open(os.path.join(cfg.path_folder, 'ucfTrainTestlist/testlist01.txt'),'r').read().splitlines()
         elif split ==2: 
