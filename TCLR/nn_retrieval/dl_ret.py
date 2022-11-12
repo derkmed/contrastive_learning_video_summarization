@@ -61,12 +61,12 @@ class multi_baseline_dataloader_train_strong(Dataset):
 
         # print(vid_path)
         # exit()
-        label = self.classes[vid_path.split('/')[-2]] # This element should be activity name
+        labels = self.classes[vid_path.split('/')[-2]] # This element should be activity name
         
         # clip_building
         clip, frame_list = self.build_clip(vid_path)
 
-        return clip, label, vid_path, frame_list
+        return clip, labels, vid_path, frame_list
 
     def build_clip(self, vid_path):
         try:
@@ -177,8 +177,8 @@ class multi_baseline_dataloader_val_strong(Dataset):
         return len(self.data)
             
     def __getitem__(self,index):        
-        clip, label, vid_path, frame_list = self.process_data(index)
-        return clip, label, vid_path, frame_list
+        clip, labels, vid_path, frame_list = self.process_data(index)
+        return clip, labels, vid_path, frame_list
 
     def process_data(self, idx):
     
