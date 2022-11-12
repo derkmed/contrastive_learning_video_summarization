@@ -1,0 +1,6 @@
+# path_folder = '../data' #'/home/idave/paths_newton_disk'
+data_path = '/content/cs6998_05/TCLR/cs6998_05-tclr_summ/data/SumMe'
+dataset_list_path = '/content/cs6998_05/TCLR/cs6998_05-tclr_summ/data/summeTrainTestlist'
+class_mapping = 'summe/summe_classes.json'
+saved_models_dir = 'nnr_results/'
+logs = 'logs/'

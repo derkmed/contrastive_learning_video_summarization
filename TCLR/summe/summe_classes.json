@@ -1,0 +1,29 @@
+{
+    "classes": {
+        "Fire Domino": 0,
+        "Bike Polo": 1,
+        "paluma_jump": 2,
+        "Notre_Dame": 3,
+        "Air_Force_One": 4,
+        "Cockpit_Landing": 5,
+        "Valparaiso_Downhill": 6,
+        "Base jumping": 7,
+        "Car_railcrossing": 8,
+        "Eiffel Tower": 9,
+        "Statue of Liberty": 10,
+        "Excavators river crossing": 11,
+        "playing_ball": 12,
+        "Bus_in_Rock_Tunnel": 13,
+        "Uncut_Evening_Flight": 14,
+        "Kids_playing_in_leaves": 15,
+        "St Maarten Landing": 16,
+        "Bearpark_climbing": 17,
+        "Cooking": 18,
+        "Saving dolphines": 19,
+        "Jumps": 20,
+        "Scuba": 21,
+        "Playing_on_water_slide": 22,
+        "car_over_camera": 23,
+        "Paintball": 24
+    }
+}
