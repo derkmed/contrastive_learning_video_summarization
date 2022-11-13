@@ -26,23 +26,28 @@ class SummeTCLRDataset(Dataset):
     # This is the minimum number of frames a video input must have.
     MIN_FRAME_THRESHOLD = 56
 
-    def __init__(self, dataset_list: str='summeTrainTestlist/2TrainTestList.txt', split=False, shuffle = True, data_percentage=1.0, 
-                mode=0, skip=1, hflip=0, cropping_factor=1.0):
+    def __init__(self, repeats: int=10, 
+                 dataset_list_file: str='2TrainTestList.txt', 
+                 shuffle=True, data_percentage=1.0):
         '''
         
+        :param repeats: number of times to resample from the same video data files. Unlike UCF-101, SumMe has fewer but longer video files. 
+        :param dataset_list_file: the file path location for the selected dataset elements (we may only want a subset of videos). This will replace "split."
+        :param shuffle: Whether to randomly shuffle the data.
+        :param data_percentage: the percentage of data specified in dataset_list to actually use.
+        :param mode: 
+        
         '''
+        self.repeats = repeats
         
         # Reads a .txt file mapping file path to class ID (this should align with summe_classes.json). 
         # This will be fed into self.all_paths, a tuple of [file name, class ID].
         def _split_on_rightmost_delim(s: str, delim: str = ' ') -> Tuple[str, str]:
             return s.rsplit(' ', 1)[0]        
-        all_paths_with_class_id = open(os.path.join(scfg.dataset_list_path, dataset_list),'r')\
+        all_paths_with_class_id = open(os.path.join(scfg.dataset_list_path, dataset_list_file),'r')\
             .read().splitlines()
         self.all_paths = [_split_on_rightmost_delim(p) for p in all_paths_with_class_id]
 
-        # TODO(derekahmed) Please implement splitting functionality.
-        if split:
-            raise ValueError("Not yet implemented!")
 
         # Reads a JSON file mapping classes to an ID.
         self.classes= json.load(open(scfg.class_mapping))['classes']
@@ -53,12 +58,9 @@ class SummeTCLRDataset(Dataset):
         # Acquire the data. self.data should be List[Tuple[str, str]]
         self.data_percentage = data_percentage
         self.data_limit = int(len(self.all_paths) * self.data_percentage)
-        self.data = self.all_paths[0 : self.data_limit] 
-
-        self.mode = mode
-        self.skip = skip # UNUSED.
-        self.hflip = hflip
-        self.cropping_factor = cropping_factor
+        
+        unrepeated_data = self.all_paths[0 : self.data_limit] 
+        self.data = [vid for vid in unrepeated_data for _ in range(self.repeats)]
         self.erase_size = 19
                        
     
