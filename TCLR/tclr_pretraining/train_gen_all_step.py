@@ -1,28 +1,36 @@
+import argparse
+import cv2
+import math
+import numpy as np
+import os
+import random
+import sys
+import time
+import traceback
+
 import torch
 from torch.autograd import Variable
+from torch.cuda.amp import autocast, GradScaler
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import *
-import time
-import os
-import numpy as np
+from torch.utils.data import DataLoader
+
+from sklearn.metrics import precision_recall_fscore_support, average_precision_score
+
 from tclr_pretraining.model import build_r3d_backbone, build_r3d_mlp, load_r3d_mlp
 import tclr_pretraining.parameters as params
 import tclr_pretraining.config as cfg
 from tclr_pretraining.dl_tclr import ss_dataset_gen1, collate_fn2
-import sys, traceback
-from sklearn.metrics import precision_recall_fscore_support, average_precision_score
+
+
 from tensorboardX import SummaryWriter
-import cv2
-from torch.utils.data import DataLoader
-import math
-import argparse
 from keras.utils import to_categorical
-import random
+
 from contrastive_loss.nt_xent_original import *
 from contrastive_loss.global_local_temporal_contrastive import global_local_temporal_contrastive
-from torch.cuda.amp import autocast, GradScaler
+
 
 if torch.cuda.is_available(): 
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
