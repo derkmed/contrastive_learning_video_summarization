@@ -24,7 +24,7 @@ def build_r3d_mlp():
     model = nn.Sequential(f,g)
     return model
     
-def load_r3d_mlp(saved_model_file):
+def load_r3d_mlp(saved_model_file, strict: bool = False):
     model = build_r3d_mlp()
     pretrained = torch.load(saved_model_file)
     pretrained_kvpair = pretrained['state_dict']
@@ -34,7 +34,7 @@ def load_r3d_mlp(saved_model_file):
         layer_name = layer_name.replace('module.','')
         model_kvpair[layer_name] = weights  
 
-    model.load_state_dict(model_kvpair, strict=True)
+    model.load_state_dict(model_kvpair, strict=strict)
     print(f'{saved_model_file} loaded successfully')
     
     return model 

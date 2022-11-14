@@ -27,8 +27,8 @@ class SummeTCLRDataset(Dataset):
     MIN_FRAME_THRESHOLD = 56
 
     def __init__(self, repeats: int=10, 
-                 dataset_list_file: str='2TrainTestList.txt', 
-                 shuffle=True, data_percentage=1.0):
+                 dataset_list_file: str = scfg.dataset_list_path, 
+                 shuffle = True, data_percentage = 1.0):
         '''
         
         :param repeats: number of times to resample from the same video data files. Unlike UCF-101, SumMe has fewer but longer video files. 
@@ -44,7 +44,7 @@ class SummeTCLRDataset(Dataset):
         # This will be fed into self.all_paths, a tuple of [file name, class ID].
         def _split_on_rightmost_delim(s: str, delim: str = ' ') -> Tuple[str, str]:
             return s.rsplit(' ', 1)[0]        
-        all_paths_with_class_id = open(os.path.join(scfg.dataset_list_path, dataset_list_file),'r')\
+        all_paths_with_class_id = open(os.path.join(scfg.dataset_list_dir, dataset_list_file),'r')\
             .read().splitlines()
         self.all_paths = [_split_on_rightmost_delim(p) for p in all_paths_with_class_id]
 
@@ -74,7 +74,7 @@ class SummeTCLRDataset(Dataset):
                 a_sparse_clip, a_dense_clip0, a_dense_clip1, a_dense_clip2, a_dense_clip3, list_sparse, list_dense, vid_path
 
     def process_data(self, idx):
-        vid_path = f"{scfg.data_path}/videos/{self.data[idx]}"
+        vid_path = f"{scfg.data_dir}/videos/{self.data[idx]}"
         sparse_clip, dense_clip0, dense_clip1, dense_clip2, dense_clip3, \
             a_sparse_clip, a_dense_clip0, a_dense_clip1, a_dense_clip2, a_dense_clip3, list_sparse, list_dense = self.build_clip(vid_path)
         return sparse_clip, dense_clip0, dense_clip1, dense_clip2, dense_clip3, \

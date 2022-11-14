@@ -157,7 +157,7 @@ def train_epoch(scaler, run_id, learning_rate2, epoch, criterion, data_loader,
 
     return model, np.mean(losses), scaler
     
-def train_classifier(run_id, restart):
+def train_classifier(run_id, restart, prev_model_filepath: str = ''):
     use_cuda = True
     writer = SummaryWriter(os.path.join(cfg.logs, str(run_id)))
     print(f'Temperature used for the nt_xent loss is {params.temperature}')
@@ -170,7 +170,9 @@ def train_classifier(run_id, restart):
         os.makedirs(save_dir)
 
     if restart:
-        saved_model_file = save_dir + str(run_id) + '/model_temp.pth'
+        saved_model_file = prev_model_filepath
+        if not saved_model_file:
+            saved_model_file = save_dir + str(run_id) + '/model_temp.pth'
         
         try:
             # Try to access the latest saved model if it exists. 
@@ -312,6 +314,9 @@ if __name__ == '__main__':
     parser.add_argument("--run_id", dest='run_id', type=str, required=False, default= "dummy",
                         help='run_id')
     parser.add_argument("--restart", action='store_true')
+    parser.add_argument("--prev_model_path", dest='prev_model_path', type=str, 
+        required=True, default= 'cs6998_05-tclr_summ/weights/model_best_e247_loss_9.7173.pth',
+        help='Model weights should be here.')
 
     print()
     print('TCLR pretraining starts...')
@@ -323,7 +328,7 @@ if __name__ == '__main__':
     run_id = args.run_id
     print(f'Run_id {args.run_id}')
 
-    train_classifier(str(run_id), args.restart)
+    train_classifier(str(run_id), args.restart, args.prev_model_path)
 
 
 
