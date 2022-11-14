@@ -15,7 +15,12 @@ class mlp(nn.Module):
         self.bn2 = nn.BatchNorm1d(128)
 
         self.relu = nn.ReLU(inplace=True)
-        self.fc2 = nn.Linear(512, self.final_embedding_size, bias = False)
+        
+        # Original paper.
+        # self.fc2 = nn.Linear(512, self.final_embedding_size, bias = False)
+
+        # For Clip-It.
+        self.fc2 = nn.Linear(512, self.final_embedding_size, bias = True)
         self.temp_avg = nn.AdaptiveAvgPool3d((1,None,None))
 
     def forward(self, x):
