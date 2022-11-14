@@ -20,15 +20,16 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import precision_recall_fscore_support, average_precision_score
 
 from tclr_pretraining.model import build_r3d_backbone, build_r3d_mlp, load_r3d_mlp
-import tclr_pretraining.parameters as params
-import tclr_pretraining.config as cfg
-from tclr_pretraining.dl_tclr import ss_dataset_gen1, collate_fn2
+import summe.summe_parameters as params
+import summe.summe_config as cfg
+# from tclr_pretraining.dl_tclr import ss_dataset_gen1, collate_fn2
+from summe.summe_tclr_dataset import SummeTCLRDataset, collate_fn2
 
 
 from tensorboardX import SummaryWriter
 
-from contrastive_loss.nt_xent_original import *
-from contrastive_loss.global_local_temporal_contrastive import global_local_temporal_contrastive
+from tclr_pretraining.contrastive_loss.nt_xent_original import *
+from tclr_pretraining.contrastive_loss.global_local_temporal_contrastive import global_local_temporal_contrastive
 
 
 if torch.cuda.is_available(): 
@@ -215,7 +216,7 @@ def train_classifier(run_id, restart):
 
     
     optimizer = optim.Adam(model.parameters(),lr=learning_rate1, weight_decay = params.weight_decay)
-    train_dataset = ss_dataset_gen1(shuffle = True, data_percentage = params.data_percentage)
+    train_dataset = SummeTCLRDataset(shuffle = True, data_percentage = params.data_percentage)
     train_dataloader = DataLoader(train_dataset, batch_size=params.batch_size, shuffle=True, num_workers=4, collate_fn=collate_fn2)
     print(f'Train dataset length: {len(train_dataset)}')
     print(f'Train dataset steps per epoch: {len(train_dataset)/params.batch_size}')
@@ -296,7 +297,7 @@ def train_classifier(run_id, restart):
             print('-'*60)
             continue
 
-        train_dataset = ss_dataset_gen1(shuffle = True, data_percentage = params.data_percentage)
+        train_dataset = SummeTCLRDataset(shuffle=True, data_percentage = params.data_percentage)
         train_dataloader = DataLoader(train_dataset, batch_size=params.batch_size, shuffle=True, num_workers=4, collate_fn=collate_fn2)
         print(f'Train dataset length: {len(train_dataset)}')
         print(f'Train dataset steps per epoch: {len(train_dataset)/params.batch_size}')

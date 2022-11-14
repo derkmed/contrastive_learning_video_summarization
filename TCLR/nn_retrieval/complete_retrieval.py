@@ -170,8 +170,7 @@ def train_classifier(run_id, arch, m_file_name, num_modes):
         print(f'Epoch {epoch} started')
         start=time.time()
         
-        pred_dict = {}
-        label_dict = {}
+        pred_dict, label_dict ={}, {}
         val_losses =[]
         if not os.path.exists('./'+str(run_id) + '_retrieval/'+str(run_id)+ '_val_pred_dict.pkl'):
 
