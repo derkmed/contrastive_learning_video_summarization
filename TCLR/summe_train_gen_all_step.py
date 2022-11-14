@@ -220,7 +220,9 @@ def train_classifier(run_id, restart, prev_model_filepath: str = ''):
     
     optimizer = optim.Adam(model.parameters(),lr=learning_rate1, weight_decay = params.weight_decay)
     train_dataset = SummeTCLRDataset(shuffle = True, data_percentage = params.data_percentage)
-    train_dataloader = DataLoader(train_dataset, batch_size=params.batch_size, shuffle=True, num_workers=4, collate_fn=collate_fn2)
+    train_dataloader = DataLoader(train_dataset, batch_size=params.batch_size, 
+        shuffle=True, num_workers=4, collate_fn=collate_fn2,
+        generator=torch.Generator(device='cuda'))
     print(f'Train dataset length: {len(train_dataset)}')
     print(f'Train dataset steps per epoch: {len(train_dataset)/params.batch_size}')
    
@@ -301,7 +303,9 @@ def train_classifier(run_id, restart, prev_model_filepath: str = ''):
             continue
 
         train_dataset = SummeTCLRDataset(shuffle=True, data_percentage = params.data_percentage)
-        train_dataloader = DataLoader(train_dataset, batch_size=params.batch_size, shuffle=True, num_workers=4, collate_fn=collate_fn2)
+        train_dataloader = DataLoader(train_dataset, batch_size=params.batch_size, 
+            shuffle=True, num_workers=4, collate_fn=collate_fn2,
+            generator=torch.Generator(device='cuda'))
         print(f'Train dataset length: {len(train_dataset)}')
         print(f'Train dataset steps per epoch: {len(train_dataset)/params.batch_size}')
        
