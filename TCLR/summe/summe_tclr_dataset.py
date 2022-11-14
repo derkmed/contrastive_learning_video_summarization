@@ -26,7 +26,7 @@ class SummeTCLRDataset(Dataset):
     # This is the minimum number of frames a video input must have.
     MIN_FRAME_THRESHOLD = 56
 
-    def __init__(self, repeats: int=10, 
+    def __init__(self, repeats: int = sparams.n_reads_per_video, 
                  dataset_list_file: str = scfg.dataset_list_path, 
                  shuffle = True, data_percentage = 1.0):
         '''

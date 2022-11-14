@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch
 import torchvision
 from torchsummary import summary
+
 from tclr_pretraining.r3d import r3d_18
 from tclr_pretraining.r3d_prp import R3DNet
 from tclr_pretraining.mlp import mlp

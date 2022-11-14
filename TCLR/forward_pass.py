@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
 
     # Randomly create 5 videos of 16 frame length, each frame with 3 112 x 112 channels. 
-    input = torch.rand(5, 3, 16, 112, 112).cuda() 
+    input = torch.rand(5, 16, 3, 112, 112).cuda() 
     input = input.permute(0, 2, 1, 3, 4)
     
     model = enc.build_r3d_encoder_ret(num_classes = 102, saved_model_file=SELECTED_MODEL_FILE)

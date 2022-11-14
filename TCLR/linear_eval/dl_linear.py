@@ -6,7 +6,7 @@ from torchvision import transforms, utils
 import linear_eval.config as cfg
 import random
 import pickle
-import parameters_BL as params
+import linear_eval.parameters_BL as params
 import json
 import math
 import cv2

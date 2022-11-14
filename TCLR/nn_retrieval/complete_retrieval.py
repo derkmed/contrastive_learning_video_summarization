@@ -11,7 +11,7 @@ import os
 import numpy as np
 # from model import build_r3d_classifier, build_r3d_backbone, build_r3d_original
 # from i3d import InceptionI3d
-from model import *
+from nn_retrieval.model import *
 import parameters_BL as params
 import config as cfg
 # from DL_ishanv3 import *

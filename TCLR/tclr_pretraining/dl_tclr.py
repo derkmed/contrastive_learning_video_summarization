@@ -7,8 +7,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
-import tclr_pretraining.config as cfg
-import tclr_pretraining.parameters as params
 
 import random
 import pickle
@@ -19,6 +17,9 @@ import cv2
 import time
 import torchvision.transforms as trans
 # from decord import VideoReader
+
+import tclr_pretraining.config as cfg
+import tclr_pretraining.parameters as params
 
 class ss_dataset_gen1(Dataset):
 

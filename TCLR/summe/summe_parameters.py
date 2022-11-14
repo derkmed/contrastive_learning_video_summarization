@@ -22,6 +22,11 @@ warmup_array = [1/100,1/20,1/10,1/2,1]
 scheduler_patience = 9
 
 
+# Configure this value to determine how many times to randomly
+# sample from each long video, i.e. setting this parameter to
+# 5 will lead to 5 x [2 x (1 sparse clips) + 2 x (4 dense clips)]
+# from each video.
+n_reads_per_video = 5
     
 
 
