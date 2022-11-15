@@ -17,17 +17,16 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import *
 from torch.utils.data import DataLoader
 
+from tensorboardX import SummaryWriter
+
 from sklearn.metrics import precision_recall_fscore_support, average_precision_score
 
 
-from tclr_pretraining.model import build_r3d_backbone, build_r3d_mlp, load_r3d_mlp
+from tclr_pretraining.model import build_r3d_mlp, load_r3d_mlp
 import summe.summe_parameters as params
 import summe.summe_config as cfg
 # from tclr_pretraining.dl_tclr import ss_dataset_gen1, collate_fn2
 from summe.summe_tclr_dataset import SummeTCLRDataset, collate_fn2
-
-
-from tensorboardX import SummaryWriter
 
 from tclr_pretraining.contrastive_loss.nt_xent_original import *
 from tclr_pretraining.contrastive_loss.global_local_temporal_contrastive import global_local_temporal_contrastive
@@ -158,7 +157,7 @@ def train_epoch(scaler, run_id, learning_rate2, epoch, criterion, data_loader,
 
     return model, np.mean(losses), scaler
     
-def train_classifier(run_id, restart, prev_model_filepath: str = ''):
+def train_classifier(run_id: str, restart: bool, prev_model_filepath: str = '', n_epochs: int = params.num_epochs):
     use_cuda = True
     writer = SummaryWriter(os.path.join(cfg.logs, str(run_id)))
     print(f'Temperature used for the nt_xent loss is {params.temperature}')
@@ -230,7 +229,7 @@ def train_classifier(run_id, restart, prev_model_filepath: str = ''):
     scheduler_step = 1         
 
     ##################### Kick off epochs for training. #####################
-    for epoch in range(epoch0, params.num_epochs):
+    for epoch in range(epoch0, n_epochs):
         print(f'Epoch {epoch} started')
         if epoch < params.warmup:
             learning_rate2 = params.warmup_array[epoch]*params.learning_rate
@@ -322,6 +321,7 @@ if __name__ == '__main__':
     parser.add_argument("--prev_model_path", dest='prev_model_path', type=str, 
         required=True, default= 'cs6998_05-tclr_summ/weights/model_best_e247_loss_9.7173.pth',
         help='Model weights should be here.')
+    parser.add_argument("--num_epochs", dest='num_epochs', type=int, required=False)
 
     print()
     print('TCLR pretraining starts...')
@@ -333,7 +333,7 @@ if __name__ == '__main__':
     run_id = args.run_id
     print(f'Run_id {args.run_id}')
 
-    train_classifier(str(run_id), args.restart, args.prev_model_path)
+    train_classifier(str(run_id), args.restart, args.prev_model_path, n_epochs=args.num_epochs)
 
 
 
