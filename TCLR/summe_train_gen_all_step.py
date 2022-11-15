@@ -157,7 +157,10 @@ def train_epoch(scaler, run_id, learning_rate2, epoch, criterion, data_loader,
 
     return model, np.mean(losses), scaler
     
-def train_classifier(run_id: str, restart: bool, prev_model_filepath: str = '', n_epochs: int = params.num_epochs):
+def train_classifier(run_id: str, restart: bool, prev_model_filepath: str = '', 
+    n_epochs: int = params.num_epochs,
+    n_workers: int = 4):
+
     use_cuda = True
     writer = SummaryWriter(os.path.join(cfg.logs, str(run_id)))
     print(f'Temperature used for the nt_xent loss is {params.temperature}')
@@ -220,7 +223,7 @@ def train_classifier(run_id: str, restart: bool, prev_model_filepath: str = '', 
     optimizer = optim.Adam(model.parameters(),lr=learning_rate1, weight_decay = params.weight_decay)
     train_dataset = SummeTCLRDataset(shuffle = True, data_percentage = params.data_percentage)
     train_dataloader = DataLoader(train_dataset, batch_size=params.batch_size, 
-        shuffle=True, num_workers=4, collate_fn=collate_fn2,
+        shuffle=True, num_workers=n_workers, collate_fn=collate_fn2,
         generator=torch.Generator(device='cuda'))
     print(f'Train dataset length: {len(train_dataset)}')
     print(f'Train dataset steps per epoch: {len(train_dataset)/params.batch_size}')
@@ -303,7 +306,7 @@ def train_classifier(run_id: str, restart: bool, prev_model_filepath: str = '', 
 
         train_dataset = SummeTCLRDataset(shuffle=True, data_percentage = params.data_percentage)
         train_dataloader = DataLoader(train_dataset, batch_size=params.batch_size, 
-            shuffle=True, num_workers=4, collate_fn=collate_fn2,
+            shuffle=True, num_workers=n_workers, collate_fn=collate_fn2,
             generator=torch.Generator(device='cuda'))
         print(f'Train dataset length: {len(train_dataset)}')
         print(f'Train dataset steps per epoch: {len(train_dataset)/params.batch_size}')
@@ -322,6 +325,7 @@ if __name__ == '__main__':
         required=True, default= 'cs6998_05-tclr_summ/weights/model_best_e247_loss_9.7173.pth',
         help='Model weights should be here.')
     parser.add_argument("--num_epochs", dest='num_epochs', type=int, required=False)
+    parser.add_argument("--num_dataloader_workers", dest='num_dataloader_workers', type=int, required=False)
 
     print()
     print('TCLR pretraining starts...')
@@ -333,7 +337,8 @@ if __name__ == '__main__':
     run_id = args.run_id
     print(f'Run_id {args.run_id}')
 
-    train_classifier(str(run_id), args.restart, args.prev_model_path, n_epochs=args.num_epochs)
+    train_classifier(str(run_id), args.restart, args.prev_model_path, 
+        n_epochs=args.num_epochs, n_workers=args.num_dataloader_workers)
 
 
 
