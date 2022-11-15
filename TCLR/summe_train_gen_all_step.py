@@ -178,22 +178,27 @@ def train_classifier(run_id: str, reload: bool, prev_model_filepath: str = '',
         if not saved_model_file:
             saved_model_file = save_dir + str(run_id) + '/model_temp.pth'
         
-        model = load_r3d_mlp(saved_model_file=saved_model_file)
-        saved_state = torch.load(saved_model_file)
-        epoch0 = saved_state['epoch']
-        learning_rate1 = saved_state['learning_rate']
-        scaler = saved_state['amp_scaler'] 
-        
-        # The following do not exist in the TCLR pretrained weights. 
-        if 'best_score' in saved_state.keys():
-            best_score = saved_state['best_score'] 
-        else:
-            best_score = 10000
+        try:
+            # Try to access the latest saved model if it exists. 
+            model = load_r3d_mlp(saved_model_file=saved_model_file)
+            epoch0 = torch.load(saved_model_file)['epoch']
+            learning_rate1 = torch.load(saved_model_file)['learning_rate']
+            best_score = torch.load(saved_model_file)['best_score'] 
+            scheduler_epoch = torch.load(saved_model_file)['scheduler_epoch'] 
+            scaler = torch.load(saved_model_file)['amp_scaler'] 
 
-        if 'scheduler_epoch' in saved_state.keys():
-            scheduler_epoch = saved_state['scheduler_epoch']
-        else:
+        except Exception as e:
+            # Reinstantiate a new model since no saved model exists.
+            print(f'Encountered {e}.')
+            model = load_r3d_mlp(saved_model_file=saved_model_file)
+            # TCLR originally has this. But, in our experience, the pretrained model
+            # still has the architecture weights.
+            # model = build_r3d_mlp()
+            epoch0 = 0 
             scheduler_epoch = 0
+            best_score = 10000
+            learning_rate1 = params.learning_rate
+            scaler = GradScaler()
 
     else:
         epoch0 = 0 
