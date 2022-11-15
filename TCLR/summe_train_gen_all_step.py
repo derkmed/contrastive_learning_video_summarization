@@ -269,6 +269,7 @@ def train_classifier(run_id: str, restart: bool, prev_model_filepath: str = '',
 
                 }
                 torch.save(states, save_file_path)
+                print(f"Model saved at {save_file_path}")
                 best_score = loss
                 scheduler_epoch = 0
             elif epoch % 5 == 0:
@@ -282,7 +283,8 @@ def train_classifier(run_id: str, restart: bool, prev_model_filepath: str = '',
                     'amp_scaler': scaler,
                 }
                 torch.save(states, save_file_path)
-
+                print(f"Model saved at {save_file_path}")
+            
             if loss > best_score:
                 scheduler_epoch += 1
             
@@ -298,6 +300,7 @@ def train_classifier(run_id: str, restart: bool, prev_model_filepath: str = '',
                 'amp_scaler': scaler,
             }
             torch.save(states, save_file_path)
+            print(f"Model saved at {save_file_path}")
         except:
             print("Epoch ", epoch, " failed")
             print('-'*60)
