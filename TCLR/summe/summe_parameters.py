@@ -14,8 +14,8 @@ ori_reso_h = 360
 ori_reso_w = 480
 
 # TCLR resolutions (should be 112 x 112).
-reso_h = 112
-reso_w = 112
+reso_h = 300
+reso_w = 300
 
 warmup = 5 
 warmup_array = [1/100,1/20,1/10,1/2,1]
