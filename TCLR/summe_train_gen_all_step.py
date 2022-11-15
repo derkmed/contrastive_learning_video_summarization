@@ -159,7 +159,8 @@ def train_epoch(scaler, run_id, learning_rate2, epoch, criterion, data_loader,
     
 def train_classifier(run_id: str, restart: bool, prev_model_filepath: str = '', 
     n_epochs: int = params.num_epochs,
-    n_workers: int = 4):
+    n_workers: int = 4,
+    n_reads_per_video: int = params.n_reads_per_video):
 
     use_cuda = True
     writer = SummaryWriter(os.path.join(cfg.logs, str(run_id)))
@@ -221,11 +222,12 @@ def train_classifier(run_id: str, restart: bool, prev_model_filepath: str = '',
 
     
     optimizer = optim.Adam(model.parameters(),lr=learning_rate1, weight_decay = params.weight_decay)
-    train_dataset = SummeTCLRDataset(shuffle = True, data_percentage = params.data_percentage)
+    train_dataset = SummeTCLRDataset(shuffle = True, 
+        repeats = n_reads_per_video, data_percentage = params.data_percentage)
     train_dataloader = DataLoader(train_dataset, batch_size=params.batch_size, 
         shuffle=True, num_workers=n_workers, collate_fn=collate_fn2,
         generator=torch.Generator(device='cuda'))
-    print(f'Train dataset length: {len(train_dataset)}')
+    print(f'Train dataset length: {len(train_dataset)}')                    # See sparams.n_reads_per_video
     print(f'Train dataset steps per epoch: {len(train_dataset)/params.batch_size}')
    
     learning_rate2 = learning_rate1 
