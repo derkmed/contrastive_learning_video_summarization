@@ -17,6 +17,7 @@ import torch
 # import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms, utils
+from torchvision.transforms.functional import InterpolationMode
 
 # from decord import VideoReader
 
@@ -265,7 +266,7 @@ class SummeTCLRDataset(Dataset):
             int(sparams.ori_reso_h*cropping_factor1),
             int(sparams.ori_reso_h*cropping_factor1),
             (sparams.reso_h, sparams.reso_w),
-            interpolation=2)
+            interpolation=InterpolationMode.BILINEAR)
 
         if random_array[0] < 0.125:
             image = transforms.functional.adjust_contrast(image, contrast_factor = contrast_factor1) #0.75 to 1.25

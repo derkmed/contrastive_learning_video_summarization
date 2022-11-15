@@ -187,9 +187,9 @@ def train_classifier(run_id: str, restart: bool, prev_model_filepath: str = '',
             scheduler_epoch = torch.load(saved_model_file)['scheduler_epoch'] 
             scaler = torch.load(saved_model_file)['amp_scaler'] 
 
-        except:
+        except Exception as e:
             # Reinstantiate a new model since no saved model exists.
-            print(f'No such model exists: {saved_model_file} :(')
+            print(f'Encountered {e}. No such model exists: {saved_model_file} :(')
             epoch0 = 0 
             model = build_r3d_mlp()
             scheduler_epoch = 0
