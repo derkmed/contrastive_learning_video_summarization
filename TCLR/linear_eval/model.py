@@ -9,7 +9,10 @@ from linear_eval.r3d_classifier import r3d_18_classifier
 # from classifier_r2p1d import r2plus1d_18_classifier
 # # from try1_model import r2plus1d_18_changed
 # # from dilated_r2plus1d import r2plus1d_18
-from torchvision.models.utils import load_state_dict_from_url
+
+# from torchvision.models.utils import load_state_dict_from_url
+# The following works for colab environments.
+from torch.hub import load_state_dict_from_url
 
 def build_r3d_classifier(num_classes = 102, kin_pretrained = False, self_pretrained = True, saved_model_file = None, linear = True):
     model = r3d_18_classifier(pretrained = kin_pretrained, progress = False)
