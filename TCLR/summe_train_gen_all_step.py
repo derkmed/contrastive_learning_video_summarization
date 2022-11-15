@@ -236,6 +236,8 @@ def train_classifier(run_id: str, reload: bool, prev_model_filepath: str = '',
     scheduler_step = 1         
 
     ##################### Kick off epochs for training. #####################
+    if n_epochs <= epoch0:
+        print(f"n_epochs={n_epochs} must be larger than epoch0={epoch0}")
     for epoch in range(epoch0, n_epochs):
         print(f'Epoch {epoch} started')
         if epoch < params.warmup:
