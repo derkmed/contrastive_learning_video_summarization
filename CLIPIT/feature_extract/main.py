@@ -19,10 +19,8 @@ to_pil = T.ToPILImage()
 if not os.path.exists(processed_base):
     os.mkdir(processed_base)
 
-
 def get_evenly_spaced_ids(size, num_elements):
     return np.round(np.linspace(0, size - 1, num_elements)).astype(int)
-
 
 video_info = pd.read_csv(os.path.join(
     video_base, 'data', 'ydata-tvsum50-info.tsv'), sep='\t')
