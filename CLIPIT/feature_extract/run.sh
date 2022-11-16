@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 FEATURE_EXTRACTOR_BASE=./BMT/submodules/video_features
-VIDEO_BASE=/home/hojaeyoon/ydata-tvsum50-v1_1/video
-OUTPUT=$(pwd)/output
+VIDEO_BASE=/home/hojaeyoon/summe/downsampled
+OUTPUT=$(pwd)/output_summe
 mkdir -p $OUTPUT
 arr=(${VIDEO_BASE}/*.mp4)
 VIDEO_LIST=""
 for i in ${!arr[*]}; do
     VIDEO_LIST+=" ${arr[i]}"
 done
+echo $VIDEO_LIST
 
 cd $FEATURE_EXTRACTOR_BASE
 
@@ -23,6 +24,7 @@ python main.py \
     --output_path ${OUTPUT}
 
 # extract vgg features
+echo $VIDEO_LIST
 conda deactivate
 conda activate vggish
 python main.py \
@@ -38,6 +40,7 @@ cd ../../
 for i in ${!arr[*]};
 do
    ID=$(basename ${arr[i]} .mp4)
+   echo $ID
    python ./sample/single_video_prediction.py \
     --output_file ${OUTPUT}/${ID}_captions.pth \
     --prop_generator_model_path ./sample/best_prop_model.pt \

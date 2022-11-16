@@ -7,7 +7,7 @@ import os
 
 
 def extract_id(path):
-    return os.path.basename(path).split('_')[0]
+    return '_'.join(os.path.basename(path).split('_')[:-1])
 
 
 def main(args):
@@ -16,6 +16,7 @@ def main(args):
     for p in tqdm.tqdm(
             glob.glob(f'{args.caption_dir}/*_captions.pth')):
         file_id = extract_id(p)
+        print(p, file_id)
         captions = torch.load(p)
         captions = list(map(lambda x: x['sentence'], captions))
         text = clip.tokenize(captions).to(device)
