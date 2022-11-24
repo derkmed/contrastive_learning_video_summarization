@@ -157,11 +157,10 @@ def train_epoch(scaler, run_id, learning_rate2, epoch, criterion, data_loader,
 
     return model, np.mean(losses), scaler
     
-def train_classifier(run_id: str, reload: bool, prev_model_filepath: str = '', 
+def train_classifier(traintestlist: str, run_id: str, reload: bool, prev_model_filepath: str = '', 
     n_epochs: int = params.num_epochs,
     n_workers: int = 4,
-    n_reads_per_video: int = params.n_reads_per_video,
-    traintestlist: str = cfg.dataset_list_path):
+    n_reads_per_video: int = params.n_reads_per_video):
 
     use_cuda = True
     writer = SummaryWriter(os.path.join(cfg.logs, str(run_id)))
@@ -338,7 +337,7 @@ if __name__ == '__main__':
         help='Model weights should be here.')
     parser.add_argument("--num_epochs", dest='num_epochs', type=int, required=False)
     parser.add_argument("--num_dataloader_workers", dest='num_dataloader_workers', type=int, required=False)
-    parser.add_argument("--traintestlist", dest='traintestlist', type=str, required=False)
+    parser.add_argument("--traintestlist", dest='traintestlist', type=str, required=True)
 
     print()
     print('TCLR pretraining starts...')
@@ -350,8 +349,8 @@ if __name__ == '__main__':
     run_id = args.run_id
     print(f'Run_id {args.run_id}')
 
-    train_classifier(str(run_id), args.restart, args.prev_model_path, 
-        n_epochs=args.num_epochs, n_workers=args.num_dataloader_workers, traintestlist=args.traintestlist)
+    train_classifier(args.traintestlist, str(run_id), args.restart, args.prev_model_path, 
+        n_epochs=args.num_epochs, n_workers=args.num_dataloader_workers)
 
 
 

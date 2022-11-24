@@ -27,9 +27,9 @@ class SummarizationTCLRDataset(Dataset):
     # This is the minimum number of frames a video input must have.
     MIN_FRAME_THRESHOLD = 56
 
-    def __init__(self, repeats: int = sparams.n_reads_per_video, 
-                 dataset_list_file: str = scfg.dataset_list_path, 
-                 shuffle = True, data_percentage = 1.0):
+    def __init__(self, dataset_list_file: str,
+                repeats: int = sparams.n_reads_per_video,   
+                shuffle = True, data_percentage = 1.0):
         '''
         
         :param repeats: number of times to resample from the same video data files. Unlike UCF-101, SumMe has fewer but longer video files. 
