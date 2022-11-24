@@ -160,7 +160,8 @@ def train_epoch(scaler, run_id, learning_rate2, epoch, criterion, data_loader,
 def train_classifier(run_id: str, reload: bool, prev_model_filepath: str = '', 
     n_epochs: int = params.num_epochs,
     n_workers: int = 4,
-    n_reads_per_video: int = params.n_reads_per_video):
+    n_reads_per_video: int = params.n_reads_per_video,
+    traintestlist: str = cfg.dataset_list_path):
 
     use_cuda = True
     writer = SummaryWriter(os.path.join(cfg.logs, str(run_id)))
@@ -225,7 +226,8 @@ def train_classifier(run_id: str, reload: bool, prev_model_filepath: str = '',
 
     
     optimizer = optim.Adam(model.parameters(),lr=learning_rate1, weight_decay = params.weight_decay)
-    train_dataset = SummarizationTCLRDataset(shuffle=True, repeats=n_reads_per_video, data_percentage=params.data_percentage)
+    train_dataset = SummarizationTCLRDataset(shuffle=True, repeats=n_reads_per_video, 
+        data_percentage=params.data_percentage, dataset_list_file=traintestlist)
     train_dataloader = DataLoader(train_dataset, batch_size=params.batch_size, 
         shuffle=True, num_workers=n_workers, collate_fn=collate_fn2,
         generator=torch.Generator(device='cuda'))
@@ -335,6 +337,7 @@ if __name__ == '__main__':
         help='Model weights should be here.')
     parser.add_argument("--num_epochs", dest='num_epochs', type=int, required=False)
     parser.add_argument("--num_dataloader_workers", dest='num_dataloader_workers', type=int, required=False)
+    parser.add_argument("--traintestlist", dest='traintestlist', type=str, required=False)
 
     print()
     print('TCLR pretraining starts...')
@@ -347,7 +350,7 @@ if __name__ == '__main__':
     print(f'Run_id {args.run_id}')
 
     train_classifier(str(run_id), args.restart, args.prev_model_path, 
-        n_epochs=args.num_epochs, n_workers=args.num_dataloader_workers)
+        n_epochs=args.num_epochs, n_workers=args.num_dataloader_workers, traintestlist=args.traintestlist)
 
 
 
