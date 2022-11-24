@@ -11,8 +11,8 @@ import cv2
 
 import numpy as np
 
-import summe.summe_config as scfg
-import summe.summe_parameters as sparams
+import sumtclr.sumtclr_config as scfg
+import sumtclr.sumtclr_parameters as sparams
 import torch
 # import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader, Dataset
@@ -22,7 +22,7 @@ from torchvision.transforms.functional import InterpolationMode
 # from decord import VideoReader
 
 
-class SummeTCLRDataset(Dataset):
+class SummarizationTCLRDataset(Dataset):
     
     # This is the minimum number of frames a video input must have.
     MIN_FRAME_THRESHOLD = 56
@@ -41,17 +41,14 @@ class SummeTCLRDataset(Dataset):
         '''
         self.repeats = repeats
         
-        # Reads a .txt file mapping file path to class ID (this should align with summe_classes.json). 
+        # Reads a .txt file mapping file path to a class ID. 
         # This will be fed into self.all_paths, a tuple of [file name, class ID].
         def _split_on_rightmost_delim(s: str, delim: str = ' ') -> Tuple[str, str]:
-            return s.rsplit(' ', 1)[0]        
-        all_paths_with_class_id = open(os.path.join(scfg.dataset_list_dir, dataset_list_file),'r')\
-            .read().splitlines()
-        self.all_paths = [_split_on_rightmost_delim(p) for p in all_paths_with_class_id]
+            return s.rsplit(' ', 1)        
+        all_paths_with_class_id = open(dataset_list_file,'r').read().splitlines()
+        self.all_paths = [_split_on_rightmost_delim(p)[0] for p in all_paths_with_class_id]
 
 
-        # Reads a JSON file mapping classes to an ID.
-        self.classes= json.load(open(scfg.class_mapping))['classes']
         self.shuffle = shuffle
         if self.shuffle:
             random.shuffle(self.all_paths)
@@ -59,9 +56,10 @@ class SummeTCLRDataset(Dataset):
         # Acquire the data. self.data should be List[Tuple[str, str]]
         self.data_percentage = data_percentage
         self.data_limit = int(len(self.all_paths) * self.data_percentage)
-        
         unrepeated_data = self.all_paths[0 : self.data_limit] 
+        # These should be full paths!
         self.data = [vid for vid in unrepeated_data for _ in range(self.repeats)]
+        
         self.erase_size = 19
                        
     
@@ -75,7 +73,7 @@ class SummeTCLRDataset(Dataset):
                 a_sparse_clip, a_dense_clip0, a_dense_clip1, a_dense_clip2, a_dense_clip3, list_sparse, list_dense, vid_path
 
     def process_data(self, idx):
-        vid_path = f"{scfg.data_dir}/videos/{self.data[idx]}"
+        vid_path = f"{self.data[idx]}"
         sparse_clip, dense_clip0, dense_clip1, dense_clip2, dense_clip3, \
             a_sparse_clip, a_dense_clip0, a_dense_clip1, a_dense_clip2, a_dense_clip3, list_sparse, list_dense = self.build_clip(vid_path)
         return sparse_clip, dense_clip0, dense_clip1, dense_clip2, dense_clip3, \
@@ -97,7 +95,7 @@ class SummeTCLRDataset(Dataset):
             cap.set(1, 0)                 #  cv.CAP_ANY
             frame_count = cap.get(7)      # cv.CAP_PROP_FRAME_COUNT
             
-            if frame_count <= SummeTCLRDataset.MIN_FRAME_THRESHOLD:
+            if frame_count <= SummarizationTCLRDataset.MIN_FRAME_THRESHOLD:
                 raise ValueError(f"Video {vid_path} has insufficient frames")
             ############################# frame_list maker start here#################################
             #################################### SEE APPENDIX C.3 ####################################
@@ -343,7 +341,7 @@ def collate_fn2(batch):
         list_sparse, list_dense, vid_path
             
 if __name__ == '__main__':
-    train_dataset = SummeTCLRDataset(shuffle = True, data_percentage = 1.0)
+    train_dataset = SummarizationTCLRDataset(shuffle = True, data_percentage = 1.0)
     train_dataloader = DataLoader(train_dataset, batch_size=40, \
         shuffle=False, num_workers=4, collate_fn=collate_fn2)
     print(f'Step involved: {len(train_dataset)/24}')

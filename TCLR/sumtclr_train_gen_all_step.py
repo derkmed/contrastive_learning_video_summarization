@@ -23,10 +23,10 @@ from sklearn.metrics import precision_recall_fscore_support, average_precision_s
 
 
 from tclr_pretraining.model import build_r3d_mlp, load_r3d_mlp
-import summe.summe_parameters as params
-import summe.summe_config as cfg
+import sumtclr.sumtclr_parameters as params
+import sumtclr.sumtclr_config as cfg
 # from tclr_pretraining.dl_tclr import ss_dataset_gen1, collate_fn2
-from summe.summe_tclr_dataset import SummeTCLRDataset, collate_fn2
+from sumtclr.sumtclr_dataset import SummarizationTCLRDataset, collate_fn2
 
 from tclr_pretraining.contrastive_loss.nt_xent_original import *
 from tclr_pretraining.contrastive_loss.global_local_temporal_contrastive import global_local_temporal_contrastive
@@ -225,7 +225,7 @@ def train_classifier(run_id: str, reload: bool, prev_model_filepath: str = '',
 
     
     optimizer = optim.Adam(model.parameters(),lr=learning_rate1, weight_decay = params.weight_decay)
-    train_dataset = SummeTCLRDataset(shuffle=True, repeats=n_reads_per_video, data_percentage=params.data_percentage)
+    train_dataset = SummarizationTCLRDataset(shuffle=True, repeats=n_reads_per_video, data_percentage=params.data_percentage)
     train_dataloader = DataLoader(train_dataset, batch_size=params.batch_size, 
         shuffle=True, num_workers=n_workers, collate_fn=collate_fn2,
         generator=torch.Generator(device='cuda'))
@@ -313,7 +313,7 @@ def train_classifier(run_id: str, reload: bool, prev_model_filepath: str = '',
             print('-'*60)
             continue
 
-        train_dataset = SummeTCLRDataset(shuffle=True, repeats=n_reads_per_video, data_percentage=params.data_percentage)
+        train_dataset = SummarizationTCLRDataset(shuffle=True, repeats=n_reads_per_video, data_percentage=params.data_percentage)
         train_dataloader = DataLoader(train_dataset, batch_size=params.batch_size, 
             shuffle=True, num_workers=n_workers, collate_fn=collate_fn2,
             generator=torch.Generator(device='cuda'))
