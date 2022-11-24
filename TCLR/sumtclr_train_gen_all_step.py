@@ -315,7 +315,8 @@ def train_classifier(run_id: str, reload: bool, prev_model_filepath: str = '',
             print('-'*60)
             continue
 
-        train_dataset = SummarizationTCLRDataset(shuffle=True, repeats=n_reads_per_video, data_percentage=params.data_percentage)
+        train_dataset = SummarizationTCLRDataset(shuffle=True, repeats=n_reads_per_video, 
+            data_percentage=params.data_percentage, dataset_list_file=traintestlist)
         train_dataloader = DataLoader(train_dataset, batch_size=params.batch_size, 
             shuffle=True, num_workers=n_workers, collate_fn=collate_fn2,
             generator=torch.Generator(device='cuda'))
