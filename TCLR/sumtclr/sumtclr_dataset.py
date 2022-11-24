@@ -61,6 +61,7 @@ class SummarizationTCLRDataset(Dataset):
         self.data = [vid for vid in unrepeated_data for _ in range(self.repeats)]
         
         self.erase_size = 19
+        print(f"Initialized dataset for data at {dataset_list_file}. Reading {self.data}.")
                        
     
     def __len__(self):
