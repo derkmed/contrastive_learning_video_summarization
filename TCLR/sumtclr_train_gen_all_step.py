@@ -176,8 +176,7 @@ def train_classifier(traintestlist: str, run_id: str, reload: bool, prev_model_f
     if reload:
         saved_model_file = prev_model_filepath
         if not saved_model_file:
-            saved_model_file = save_dir + str(run_id) + '/model_temp.pth'
-        
+            saved_model_file = save_dir + str(run_id) + '/model_temp.pth'  
         try:
             # Try to access the latest saved model if it exists. 
             model = load_r3d_mlp(saved_model_file=saved_model_file)
@@ -199,7 +198,6 @@ def train_classifier(traintestlist: str, run_id: str, reload: bool, prev_model_f
             best_score = 10000
             learning_rate1 = params.learning_rate
             scaler = GradScaler()
-
     else:
         epoch0 = 0 
         model = build_r3d_mlp()
@@ -331,26 +329,27 @@ if __name__ == '__main__':
 
     parser.add_argument("--run_id", dest='run_id', type=str, required=False, default= "dummy",
                         help='run_id')
-    parser.add_argument("--restart", action='store_true')
+    parser.add_argument("--reload", action='store_true')
     parser.add_argument("--prev_model_path", dest='prev_model_path', type=str, 
         required=False, default= 'cs6998_05-tclr_summ/weights/model_best_e247_loss_9.7173.pth',
         help='Model weights should be here.')
     parser.add_argument("--num_epochs", dest='num_epochs', type=int, required=False)
     parser.add_argument("--num_dataloader_workers", dest='num_dataloader_workers', type=int, required=False)
     parser.add_argument("--traintestlist", dest='traintestlist', type=str, required=True)
+    parser.add_argument("--repeats", dest='nrepeats', type=int, required=False, default=1)
 
     print()
     print('TCLR pretraining starts...')
     print()
 
     args = parser.parse_args()
-    print(f'Restart {args.restart}')
+    print(f'Restart {args.reload}')
 
     run_id = args.run_id
     print(f'Run_id {args.run_id}')
 
-    train_classifier(args.traintestlist, str(run_id), args.restart, args.prev_model_path, 
-        n_epochs=args.num_epochs, n_workers=args.num_dataloader_workers)
+    train_classifier(args.traintestlist, str(run_id), args.reload, args.prev_model_path, 
+        n_epochs=args.num_epochs, n_workers=args.num_dataloader_workers, n_reads_per_video=args.nrepeats)
 
 
 
