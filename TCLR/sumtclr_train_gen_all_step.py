@@ -333,7 +333,7 @@ if __name__ == '__main__':
                         help='run_id')
     parser.add_argument("--restart", action='store_true')
     parser.add_argument("--prev_model_path", dest='prev_model_path', type=str, 
-        required=True, default= 'cs6998_05-tclr_summ/weights/model_best_e247_loss_9.7173.pth',
+        required=False, default= 'cs6998_05-tclr_summ/weights/model_best_e247_loss_9.7173.pth',
         help='Model weights should be here.')
     parser.add_argument("--num_epochs", dest='num_epochs', type=int, required=False)
     parser.add_argument("--num_dataloader_workers", dest='num_dataloader_workers', type=int, required=False)
