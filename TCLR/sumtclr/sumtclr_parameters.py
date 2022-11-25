@@ -1,7 +1,7 @@
 import numpy as np
 
 num_frames = 16
-batch_size = 40
+batch_size = 15
 learning_rate = 1e-3 #base learning rate
 num_epochs = 1000 # training code will end after this num_of_epochs
 data_percentage = 1.0 #just for debugging purpose, default = 1

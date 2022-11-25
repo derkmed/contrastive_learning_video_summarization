@@ -160,12 +160,13 @@ def train_epoch(scaler, run_id, learning_rate2, epoch, criterion, data_loader,
 def train_classifier(traintestlist: str, run_id: str, reload: bool, prev_model_filepath: str = '', 
     n_epochs: int = params.num_epochs,
     n_workers: int = 4,
-    n_reads_per_video: int = params.n_reads_per_video):
+    n_reads_per_video: int = params.n_reads_per_video,
+    batch_size: int = params.batch_size):
 
     use_cuda = True
     writer = SummaryWriter(os.path.join(cfg.logs, str(run_id)))
     print(f'Temperature used for the nt_xent loss is {params.temperature}')
-    print(f'Batch size {params.batch_size}')
+    print(f'Batch size {batch_size}')
     print(f'Weight decay {params.weight_decay}')
 
     # Set up the directory for model checkpoints & saving.
@@ -211,7 +212,7 @@ def train_classifier(traintestlist: str, run_id: str, reload: bool, prev_model_f
     print(f'Scheduler_epoch {scheduler_epoch}')
     print(f'Best score till now is {best_score}')
 
-    criterion = NTXentLoss(device = 'cuda', batch_size=params.batch_size, temperature=params.temperature, use_cosine_similarity = False)
+    criterion = NTXentLoss(device = 'cuda', batch_size=batch_size, temperature=params.temperature, use_cosine_similarity = False)
 
     if torch.cuda.device_count() > 1:
         print(f'Multiple GPUS found!')
@@ -225,11 +226,11 @@ def train_classifier(traintestlist: str, run_id: str, reload: bool, prev_model_f
     optimizer = optim.Adam(model.parameters(),lr=learning_rate1, weight_decay = params.weight_decay)
     train_dataset = SummarizationTCLRDataset(shuffle=True, repeats=n_reads_per_video, 
         data_percentage=params.data_percentage, dataset_list_file=traintestlist)
-    train_dataloader = DataLoader(train_dataset, batch_size=params.batch_size, 
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, 
         shuffle=True, num_workers=n_workers, collate_fn=collate_fn2,
         generator=torch.Generator(device='cuda'))
     print(f'Train dataset length: {len(train_dataset)}')                    # See sparams.n_reads_per_video
-    print(f'Train dataset steps per epoch: {len(train_dataset)/params.batch_size}')
+    print(f'Train dataset steps per epoch: {len(train_dataset)/batch_size}')
    
     learning_rate2 = learning_rate1 
     scheduler_step = 1         
@@ -314,11 +315,11 @@ def train_classifier(traintestlist: str, run_id: str, reload: bool, prev_model_f
 
         train_dataset = SummarizationTCLRDataset(shuffle=True, repeats=n_reads_per_video, 
             data_percentage=params.data_percentage, dataset_list_file=traintestlist)
-        train_dataloader = DataLoader(train_dataset, batch_size=params.batch_size, 
+        train_dataloader = DataLoader(train_dataset, batch_size=batch_size, 
             shuffle=True, num_workers=n_workers, collate_fn=collate_fn2,
             generator=torch.Generator(device='cuda'))
         print(f'Train dataset length: {len(train_dataset)}')
-        print(f'Train dataset steps per epoch: {len(train_dataset)/params.batch_size}')
+        print(f'Train dataset steps per epoch: {len(train_dataset)/batch_size}')
        
         taken = time.time()-start
         print(f'Time taken for Epoch-{epoch} is {taken}')
@@ -337,6 +338,7 @@ if __name__ == '__main__':
     parser.add_argument("--num_dataloader_workers", dest='num_dataloader_workers', type=int, required=False)
     parser.add_argument("--traintestlist", dest='traintestlist', type=str, required=True)
     parser.add_argument("--repeats", dest='nrepeats', type=int, required=False, default=1)
+    parser.add_argument("--batch_size", dest='nbatch_size', type=int, required=False, default=params.batch_size)
 
     print()
     print('TCLR pretraining starts...')
@@ -349,7 +351,8 @@ if __name__ == '__main__':
     print(f'Run_id {args.run_id}')
 
     train_classifier(args.traintestlist, str(run_id), args.reload, args.prev_model_path, 
-        n_epochs=args.num_epochs, n_workers=args.num_dataloader_workers, n_reads_per_video=args.nrepeats)
+        n_epochs=args.num_epochs, n_workers=args.num_dataloader_workers, 
+        n_reads_per_video=args.nrepeats, batch_size=args.nbatch_size)
 
 
 
