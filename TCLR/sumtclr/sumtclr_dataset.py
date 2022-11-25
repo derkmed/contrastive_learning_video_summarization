@@ -61,7 +61,7 @@ class SummarizationTCLRDataset(Dataset):
         self.data = [vid for vid in unrepeated_data for _ in range(self.repeats)]
         
         self.erase_size = 19
-        print(f"Initialized dataset for data at {dataset_list_file}. Reading {self.data}.")
+        # print(f"Initialized dataset for data at {dataset_list_file}. Reading {self.data}.")
                        
     
     def __len__(self):
@@ -248,11 +248,11 @@ class SummarizationTCLRDataset(Dataset):
                         list_sparse, list_dense
             except Exception as e:
                 print(e)
-                print(f'Clip {vid_path} has some frames reading issue, failed. This was most likely due to clip frame lengths')
+                print(f'Clip {vid_path} has some unknown issue, failed')
                 return None, None, None, None, None, None, None, None, None, None, None, None
         except Exception as e:
             print(e)
-            print(f'Clip {vid_path} has some unknown issue, failed. This was most likely due to OpenCv or File issues.')
+            print(f'Clip {vid_path} has some unknown issue, failed')
             return None, None, None, None, None, None, None, None, None, None, None, None
 
     def augmentation(self, image, random_array, x_erase, y_erase, cropping_factor1,\
