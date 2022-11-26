@@ -12,7 +12,6 @@ import time
 import re
 import json
 import torch
-import imageio
 import mat73
 import math
 
@@ -164,6 +163,7 @@ class Summarizer_Dataset(Dataset):
 
     def _get_labels_for_downsampled_segments(self, dwns_nframes: int, 
         num_frames_per_segment: int,
+        nsegments: int,
         orig_labels: torch.FloatTensor) -> Tuple[torch.Tensor, torch.Tensor]:
         '''
         The original FPS *may be higher than* the downsampled segments. This means we
@@ -177,6 +177,8 @@ class Summarizer_Dataset(Dataset):
         however, resulting in a score in [0, 1].
 
         :param downs_nframes: the number of frames in the downampled video
+        :param num_frames_per_segment: the number of frames in each segment
+        :param nsegments: the number of segments in each video
         :param orig_labels: the per-frame label assignment in the original video
         :return: aggregated segment label_scores
         '''
@@ -192,7 +194,6 @@ class Summarizer_Dataset(Dataset):
                   f" videos both have {orig_nframes} frames.")
           return torch.squeeze(orig_labels)
 
-        nsegments = int(dwns_nframes / num_frames_per_segment)
         orig_frames_per_segment = int(orig_nframes / nsegments)
         label_scores = torch.zeros(nsegments)
         if self.debug_mode:
@@ -219,7 +220,8 @@ class Summarizer_Dataset(Dataset):
           vid_name = self._get_vidname(video_filepath)
           segments = self._get_video_segments(video_filepath, self.size,
                                               self.num_frames_per_segment)
-          dwns_nframes = len(segments) * self.num_frames_per_segment
+          nsegments = len(nsegments)
+          dwns_nframes = nsegments * self.num_frames_per_segment
           
 
           # Obtain the ground truth data. Given that the FPS of the input
@@ -228,9 +230,7 @@ class Summarizer_Dataset(Dataset):
           # accordingly.
           orig_labels = None
           if self.dataset_name == "summe":
-              # print("Video: ", video_filepath)
               orig_labels = self._get_summe_labels(vid_name)
-              # num_frames_in_video = len(orig_labels)
           elif self.dataset_name == "tvsum":
               orig_labels = self._get_tvsum_labels(vid_name)
           else:
@@ -239,9 +239,9 @@ class Summarizer_Dataset(Dataset):
           
           # downsampled_fps = self._getfps(video_filepath)
           label_scores = self._get_labels_for_downsampled_segments(
-              dwns_nframes, self.num_frames_per_segment, orig_labels)
+              dwns_nframes, self.num_frames_per_segment, nsegments, orig_labels)
           
-          assert label_scores.shape[0] == len(segments), ""
+          assert label_scores.shape[0] == nsegments, "Something is wrong with the code. Segment lengths do not match."
 
           if self.is_video_only:
               return {"segments": segments}
@@ -249,7 +249,7 @@ class Summarizer_Dataset(Dataset):
               return {"segments": segments, "scores": label_scores}
         
         except Exception as e:
-          print(e)
+          print("Encountered Exception :( : " + e)
           print("Cannot procure item. Error encountered")
           return None
 
@@ -262,15 +262,22 @@ if __name__ == '__main__':
     #     gt_root = "/content/cs6998_05/drive/gdata/SumMe/GT", 
     #     debug_mode = True)
 
+    ###### SumMe Testing
+    # labels = train_dataset._get_summe_labels('playing_ball')
+    # segments = train_dataset._get_video_segments('/content/cs6998_05/drive/gdata/SumMe/videos/playing_ball.mp4', 112, 32)
+    # label_scores = train_dataset._get_labels_for_downsampled_segments(
+    #           1844, 32, len(segments), labels)
+    # e = train_dataset.__getitem__(0)
+
+
     # Use this for TVSum
     train_dataset = Summarizer_Dataset(
         dataset_name='tvsum', 
-        data_list_file = "/content/cs6998_05/drive/gdata/splits/tvsum_all.txt",
-        gt_root = "/content/cs6998_05/drive/gdata/TVSum/ydata-tvsum50.mat", 
+        data_list_file = "../data/splits/summe_all.txt",
+        gt_root = "../data/gt/summe", 
         debug_mode = True)
     train_dataloader = DataLoader(train_dataset, batch_size=1)
 
-    
     for i, data in enumerate(train_dataloader):
         print(f"{len(data['segments'])} segments of " +\
               f"{data['segments'][0].shape} shape and " +\
