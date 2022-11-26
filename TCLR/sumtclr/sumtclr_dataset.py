@@ -221,6 +221,8 @@ class SummarizationTCLRDataset(Dataset):
                     
                 else:
                     break
+            
+            cap.release()
             if len(sparse_clip) < sparams.num_frames and len(sparse_clip) > 13:
                 # if sparams.num_frames - len(sparse_clip) >= 1:
                 #     print(f'sparse_clip {vid_path} is missing {params.num_frames - len(sparse_clip)} frames')
