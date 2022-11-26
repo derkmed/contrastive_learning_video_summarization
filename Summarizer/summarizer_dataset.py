@@ -29,7 +29,6 @@ class Summarizer_Dataset(Dataset):
         # min_frame_length: int = 832, 
         num_frames_per_segment: int = 32, 
         size: int = 112,
-        is_shuffle: bool = False,
         is_video_only: bool = False,
         debug_mode: bool = False
     ):
@@ -56,18 +55,11 @@ class Summarizer_Dataset(Dataset):
         # self.num_sec = self.req_frame_count / float(self.fps)
         
         self.dataset_name = dataset_name
-        self.data = open(self.data_list_file,'r').read().splitlines()
+        data = open(self.data_list_file,'r').read().splitlines()
         assert_msg = lambda f : f"{f} is misconfigured. Expecting space delimited [FILE_NAME, IDX]"
-        assert len(self.data[0].split(' ')) == 2, assert_msg(data_list_file)
-
-        self.is_shuffle = is_shuffle
-        if self.is_shuffle:
-            random.shuffle(self.data)
-
-        
+        assert len(data[0].split(' ')) == 2, assert_msg(data_list_file)        
         self.videos = {int(row.split(' ')[1]): row.split(' ')[0] for row in self.data}
         self.is_video_only = is_video_only
-        
         self.debug_mode = debug_mode
 
     
@@ -215,43 +207,44 @@ class Summarizer_Dataset(Dataset):
 
     def __getitem__(self, idx):
         try:
-          # Obtain the next video.        
-          video_filepath = self.videos[idx]
-          vid_name = self._get_vidname(video_filepath)
-          segments = self._get_video_segments(video_filepath, self.size,
-                                              self.num_frames_per_segment)
-          nsegments = len(nsegments)
-          dwns_nframes = nsegments * self.num_frames_per_segment
-          
+            # Obtain the next video.        
+            video_filepath = self.videos[idx]
+            vid_name = self._get_vidname(video_filepath)
+            segments = self._get_video_segments(video_filepath, self.size,
+                                                self.num_frames_per_segment)
+            nsegments = len(nsegments)
+            dwns_nframes = nsegments * self.num_frames_per_segment
+            
 
-          # Obtain the ground truth data. Given that the FPS of the input
-          # may not match the original source in the original Summe & TVSum
-          # datasets, we will need to aggregate the frame-level importance scores
-          # accordingly.
-          orig_labels = None
-          if self.dataset_name == "summe":
-              orig_labels = self._get_summe_labels(vid_name)
-          elif self.dataset_name == "tvsum":
-              orig_labels = self._get_tvsum_labels(vid_name)
-          else:
-              raise ValueError('Invalid dataset provided.')
+            # Obtain the ground truth data. Given that the FPS of the input
+            # may not match the original source in the original Summe & TVSum
+            # datasets, we will need to aggregate the frame-level importance scores
+            # accordingly.
+            orig_labels = None
+            if self.dataset_name == "summe":
+                orig_labels = self._get_summe_labels(vid_name)
+            elif self.dataset_name == "tvsum":
+                orig_labels = self._get_tvsum_labels(vid_name)
+            else:
+                raise ValueError('Invalid dataset provided.')
 
-          
-          # downsampled_fps = self._getfps(video_filepath)
-          label_scores = self._get_labels_for_downsampled_segments(
-              dwns_nframes, self.num_frames_per_segment, nsegments, orig_labels)
-          
-          assert label_scores.shape[0] == nsegments, "Something is wrong with the code. Segment lengths do not match."
+            
+            # downsampled_fps = self._getfps(video_filepath)
+            label_scores = self._get_labels_for_downsampled_segments(
+                dwns_nframes, self.num_frames_per_segment, nsegments, orig_labels)
+            
+            assert label_scores.shape[0] == nsegments, "Something is wrong with the code. Segment lengths do not match."
 
-          if self.is_video_only:
-              return {"segments": segments}
-          else:
-              return {"segments": segments, "scores": label_scores}
+            # TODO(derekahmed) add the frame numbers too?
+            if self.is_video_only:
+                return {"segments": segments}
+            else:
+                return {"segments": segments, "scores": label_scores}
         
         except Exception as e:
-          print("Encountered Exception :( : " + e)
-          print("Cannot procure item. Error encountered")
-          return None
+            print("Encountered Exception :( : " + e)
+            print("Cannot procure item. Error encountered")
+            return None
 
 if __name__ == '__main__':
     # Use this for SumMe
