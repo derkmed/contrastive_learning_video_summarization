@@ -15,5 +15,5 @@ def genSplitList(vid_directory: str, fileExt: str, outFile: str):
             dst.write(f"{f} {i}\n")
 
 if __name__ == "__main__":
-    VIDEO_DIR = '/Users/derekahmed/Documents/RepL/scp/data/videos/tvsumm_video'
-    genSplitList(VIDEO_DIR, "mp4", f"/Users/derekahmed/Documents/RepL/scp/data/splits/all_tvsum_traintestlist.txt")
+    VIDEO_DIR = '/home/derekhmd/data/videos/ovp_videos'
+    genSplitList(VIDEO_DIR, ".mpg", "/home/derekhmd/cs6998_05/data/splits/ovp_all.txt")

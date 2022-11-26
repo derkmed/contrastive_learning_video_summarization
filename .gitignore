@@ -134,3 +134,9 @@ dmypy.json
 # objects
 *.pt
 **/output*
+
+
+.DS_Store
+TCLR/logs/*
+TCLR/summ_results/*
+
