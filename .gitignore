@@ -134,3 +134,6 @@ dmypy.json
 # objects
 *.pt
 **/output*
+
+
+.DS_Store
