@@ -1,7 +1,5 @@
-import numpy as np
-
 num_frames = 16
-batch_size = 15
+batch_size = 8
 learning_rate = 1e-3 #base learning rate
 num_epochs = 1000 # training code will end after this num_of_epochs
 data_percentage = 1.0 #just for debugging purpose, default = 1
@@ -25,8 +23,6 @@ scheduler_patience = 9
 # Configure this value to determine how many times to randomly
 # sample from each long video, i.e. setting this parameter to
 # 5 will lead to 5 x [2 x (1 sparse clips) + 2 x (4 dense clips)]
-# from each video.
-n_reads_per_video = 5
-    
-
-
+# from each video. 
+# This turned out to be pointless due to computational constraints.
+n_reads_per_video = 1
