@@ -138,12 +138,13 @@ def train_epoch(scaler, run_id, learning_rate2, epoch, criterion, data_loader,
         losses_ic2.append(loss_ic2.item())
 
         
-        if (i+1) % 25 == 0: 
-            print(f'Training Epoch {epoch}, Batch {i}, Loss: {np.mean(losses) :.5f}')
-            print(f'Training Epoch {epoch}, Batch {i}, losses_local_local: {np.mean(losses_local_local) :.5f}')
-            print(f'Training Epoch {epoch}, Batch {i}, losses_global_local: {np.mean(losses_global_local) :.5f}')
-            print(f'Training Epoch {epoch}, Batch {i}, losses_ic2: {np.mean(losses_ic2) :.5f}')
-            print(f'Training Epoch {epoch}, Batch {i}, losses_ic1: {np.mean(losses_ic1) :.5f}')
+        if i == len(data_loader) - 1:
+            print(f'Complete {i} batches.')
+            print(f'Training Epoch {epoch}, Loss: {np.mean(losses) :.5f}')
+            print(f'Training Epoch {epoch}, losses_local_local: {np.mean(losses_local_local) :.5f}')
+            print(f'Training Epoch {epoch}, losses_global_local: {np.mean(losses_global_local) :.5f}')
+            print(f'Training Epoch {epoch}, losses_ic2: {np.mean(losses_ic2) :.5f}')
+            print(f'Training Epoch {epoch}, losses_ic1: {np.mean(losses_ic1) :.5f}')
 
         # exit()
     print('Training Epoch: %d, Loss: %.4f' % (epoch,  np.mean(losses)))
