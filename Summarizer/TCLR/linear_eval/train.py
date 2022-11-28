@@ -83,28 +83,17 @@ def val_epoch(run_id, epoch,mode,pred_dict,label_dict, data_loader, model, crite
         vid_paths.extend(vid_path)
         ground_truth.extend(label)
         if len(inputs.shape) != 1:
-
             inputs = inputs.permute(0, 2, 1, 3, 4)
-            
             if use_cuda:
                 inputs = inputs.cuda()
                 label = torch.from_numpy(np.asarray(label)).cuda()
-
-        
             with torch.no_grad():
-
                 output = model(inputs)
                 loss = criterion(output,label)
-
             losses.append(loss.item())
-
-
             predictions.extend(nn.functional.softmax(output, dim = 1).cpu().data.numpy())
-
-
             if i+1 % 45 == 0:
                 print("Validation Epoch ", epoch , "mode", mode, " Batch ", i, "- Loss : ", np.mean(losses))
-        
     del inputs, output, label, loss 
 
     ground_truth = np.asarray(ground_truth)
@@ -125,9 +114,7 @@ def val_epoch(run_id, epoch,mode,pred_dict,label_dict, data_loader, model, crite
             label_dict[str(vid_paths[entry].split('/')[-1])]= ground_truth[entry]
 
     print_pred_array = []
-
-    
-    
+ 
     correct_count = np.sum(c_pred==ground_truth)
     accuracy = float(correct_count)/len(c_pred)
     
@@ -153,7 +140,6 @@ def train_classifier(run_id, restart, saved_model, linear):
         else:
             print(f'No such model exists: {saved_model_file} :(')
             if not (saved_model == None or len(saved_model) == 0 or saved_model =="kin400"):
-    
                 print(f'Trying to load {saved_model}')
                 model = build_r3d_classifier(saved_model_file = saved_model, num_classes = 102)
             else:
@@ -186,7 +172,6 @@ def train_classifier(run_id, restart, saved_model, linear):
 
     learning_rate1 = params.learning_rate
     best_score = 10000
-
     
     criterion= nn.CrossEntropyLoss()
 

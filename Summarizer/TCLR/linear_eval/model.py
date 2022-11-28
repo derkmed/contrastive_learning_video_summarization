@@ -77,20 +77,15 @@ def load_r3d_classifier(num_classes = 102, saved_model_file = None):
                           kernel_size = (1, 1, 1), stride = (1, 2, 2), bias=False)
 
     model.fc = nn.Linear(512, num_classes)
-    model_kvpair = model.state_dict()
-
-
-    pretrained = torch.load(saved_model_file)
-    pretrained_kvpair = pretrained['state_dict']
-    # print(pretrained_kvpair)
-    # exit()
-        
-    # exit()
-    for layer_name, weights in pretrained_kvpair.items():
-       
-        model_kvpair[layer_name] = weights   
-    model.load_state_dict(model_kvpair, strict=True)
-    print(f'model {saved_model_file} loaded successsfully!')
+    
+    if saved_model_file:
+        model_kvpair = model.state_dict()
+        pretrained = torch.load(saved_model_file)
+        pretrained_kvpair = pretrained.get('state_dict', pretrained)
+        for layer_name, weights in pretrained_kvpair.items():
+            model_kvpair[layer_name] = weights
+        model.load_state_dict(model_kvpair, strict=True)
+        print(f'model {saved_model_file} loaded successsfully!')
     return model 
 
 

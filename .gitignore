@@ -139,4 +139,6 @@ dmypy.json
 .DS_Store
 TCLR/logs/*
 TCLR/summ_results/*
+**/logs
 
+/.vscode
