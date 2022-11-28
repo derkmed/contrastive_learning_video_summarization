@@ -1,4 +1,3 @@
-from cv2 import split
 import torch
 from torch.utils.data import Dataset
 import torchvision.io as io
@@ -7,12 +6,9 @@ import pandas as pd
 import os
 import numpy as np
 import random
-import ffmpeg
-import time
 import re
 import json
 import torch
-import imageio
 
 
 class VSum_DataLoader(Dataset):
