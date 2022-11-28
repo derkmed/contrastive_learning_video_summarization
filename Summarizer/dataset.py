@@ -1,26 +1,22 @@
-from cv2 import split
 import torch
-from torch.utils.data import Dataset
 import torchvision.io as io
 import torchvision.transforms as transforms
-import pandas as pd
-import os
 import numpy as np
-import random
-import ffmpeg
-import time
-import re
-import json
 import torch
-import mat73
 import math
 
 from torch.utils.data import DataLoader, Dataset
 import scipy.io
 from typing import List, Tuple
+from dataclasses import dataclass
 
 
-class Summarizer_Dataset(Dataset):
+@dataclass
+class Data:
+    segments: 'np.NDArray'
+    scores: 'np.NDArray'
+
+class SummarizerDataset(Dataset):
 
     def __init__(self, 
         dataset_name: str,
@@ -55,9 +51,9 @@ class Summarizer_Dataset(Dataset):
         # self.num_sec = self.req_frame_count / float(self.fps)
         
         self.dataset_name = dataset_name
-        data = open(self.data_list_file,'r').read().splitlines()
+        self.data = open(self.data_list_file,'r').read().splitlines()
         assert_msg = lambda f : f"{f} is misconfigured. Expecting space delimited [FILE_NAME, IDX]"
-        assert len(data[0].split(' ')) == 2, assert_msg(data_list_file)        
+        assert len(self.data[0].split(' ')) == 2, assert_msg(data_list_file)        
         self.videos = {int(row.split(' ')[1]): row.split(' ')[0] for row in self.data}
         self.is_video_only = is_video_only
         self.debug_mode = debug_mode
@@ -146,7 +142,7 @@ class Summarizer_Dataset(Dataset):
         All tvsum ground truths are in a single .mat file.
         '''
         MAX_SCORE = 5.0 # this is needed to normalize the scores.
-        gt = mat73.loadmat(self.gt_root)
+        gt = scipy.io.loadmat(self.gt_root)
         videos = gt['tvsum50']['video']
         gt_idx = videos.index(vid_name)
         gt_scores = gt['tvsum50']['gt_score'][gt_idx]
@@ -212,7 +208,7 @@ class Summarizer_Dataset(Dataset):
             vid_name = self._get_vidname(video_filepath)
             segments = self._get_video_segments(video_filepath, self.size,
                                                 self.num_frames_per_segment)
-            nsegments = len(nsegments)
+            nsegments = len(segments)
             dwns_nframes = nsegments * self.num_frames_per_segment
             
 
@@ -237,9 +233,9 @@ class Summarizer_Dataset(Dataset):
 
             # TODO(derekahmed) add the frame numbers too?
             if self.is_video_only:
-                return {"segments": segments}
+                return {'segments': segments}
             else:
-                return {"segments": segments, "scores": label_scores}
+                return {'segments': segments, 'scores': label_scores}
         
         except Exception as e:
             print("Encountered Exception :( : " + e)
@@ -264,7 +260,7 @@ if __name__ == '__main__':
 
 
     # Use this for TVSum
-    train_dataset = Summarizer_Dataset(
+    train_dataset = SummarizerDataset(
         dataset_name='tvsum', 
         data_list_file = "../data/splits/summe_all.txt",
         gt_root = "../data/gt/summe", 
@@ -272,7 +268,7 @@ if __name__ == '__main__':
     train_dataloader = DataLoader(train_dataset, batch_size=1)
 
     for i, data in enumerate(train_dataloader):
-        print(f"{len(data['segments'])} segments of " +\
-              f"{data['segments'][0].shape} shape and " +\
-              f"{torch.squeeze(data['scores']).shape} importance scores obtained.")
+        print(f"{len(data.segments)} segments of " +\
+              f"{data.segments[0].shape} shape and " +\
+              f"{torch.squeeze(data.scores).shape} importance scores obtained.")
         

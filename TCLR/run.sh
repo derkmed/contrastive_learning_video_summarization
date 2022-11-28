@@ -1,0 +1,1 @@
+python sumtclr_train_gen_all_step.py --run_id 'derek20221126'  --num_epochs 400 --num_dataloader_workers 4 --traintestlist ../data/splits/2fps_summe_20train.txt --repeats 1  --batch_size=7 --reload --prev_model_path='summ_results/derek20221126/model_temp.pth' | tee ~/logs/2fps_summe_tclr_logs/20221126_112900-5.log
