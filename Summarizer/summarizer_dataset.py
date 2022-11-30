@@ -7,7 +7,6 @@ import pandas as pd
 import os
 import numpy as np
 import random
-import ffmpeg
 import time
 import re
 import json
@@ -58,7 +57,7 @@ class Summarizer_Dataset(Dataset):
         data = open(self.data_list_file,'r').read().splitlines()
         assert_msg = lambda f : f"{f} is misconfigured. Expecting space delimited [FILE_NAME, IDX]"
         assert len(data[0].split(' ')) == 2, assert_msg(data_list_file)        
-        self.videos = {int(row.split(' ')[1]): row.split(' ')[0] for row in self.data}
+        self.videos = {int(row.split(' ')[1]): row.split(' ')[0] for row in data}
         self.is_video_only = is_video_only
         self.debug_mode = debug_mode
 
@@ -95,21 +94,15 @@ class Summarizer_Dataset(Dataset):
         return video # [B, C, H, W] 
 
 
-    def _get_video_segments(self, 
-        video_path: str, resized_dim: int, frames_per_segment: int) -> Tuple[List[torch.Tensor], int]:
+    def _get_video_segments(self, video: torch.Tensor, frames_per_segment: int) -> torch.Tensor:
         '''
-        Breaks up a video into segments of self.num_frames_per_segment length.
+        Breaks up a video into segments of self.num_frames_per_segment 
 
-        :param video_path: the input video path
-        :param resized_dim: new square dimension
+        :param video: the input video as a tensor [B, C, H, W]
         :param frames_per_segment: number of frames to include in each segment
-        :return: List[Tensor], int list of segments [B, H, W, C]
+        :return: tensor of video segments (segments is 0th dimension)
         '''
-        video = self._get_resized_video(video_path, resized_dim)
-        nframes = video.shape[0]
-        assert nframes != 0, "No video data retrieved: 0 frames read."
-
-        
+        nframes =  video.shape[0]
         is_divisible = (nframes % frames_per_segment == 0)
         next_segment_start_idx = math.ceil(nframes / frames_per_segment) * frames_per_segment
         if not is_divisible and nframes < next_segment_start_idx:
@@ -117,9 +110,9 @@ class Summarizer_Dataset(Dataset):
             if self.debug_mode:
                 print(f"[GetVideoSegments] " +\
                     f"Input video of {nframes} is not evenly divisible" +\
-                    f" into {frames_per_segment} frames...")
+                    f" by {frames_per_segment} frames. Padding to {next_segment_start_idx}.")
             zeros = torch.zeros(
-                (next_segment_start_idx - nframes, 3, resized_dim, resized_dim),
+                (next_segment_start_idx - nframes, video.shape[1], video.shape[2], video.shape[3]),
                 dtype=torch.uint8)
             video = torch.cat((video, zeros), axis=0)
         
@@ -128,14 +121,43 @@ class Summarizer_Dataset(Dataset):
         splitted = torch.split(video, frames_per_segment)
         # [S, F, H, W, C] where S x F = B
         segments = torch.stack(splitted) 
-        return segments, nframes
-
+        s, f, h, w, c = segments.shape
+        return segments
 
     def _get_vidname(self, filepath: str) -> str:
         # remove the rightmost file-extension and return the rightmost filename
         # without the absolute path.
         return (filepath.rsplit('.')[0]).rsplit('/', 1)[-1]
 
+    def _get_segment_label_scores(self, vid_name: str, s_dimsize: int, npad_frames: int = -1) -> torch.FloatTensor:
+        '''
+        Obtain the label scores and pad and aggregate as necessary such that each segment can have
+        a corresponding label_score.
+
+        :param vid_name: the video to read ground truth data for
+        :param s_dimsize: the number of segments
+        :param npad_frames: the number of frames to pad prior to aggregation. Ignore padding if -1.
+        :return: tensor of label scores
+        '''
+        orig_labels = None
+        if self.dataset_name == "summe":
+            orig_labels = self._get_summe_labels(vid_name)
+        elif self.dataset_name == "tvsum":
+            orig_labels = self._get_tvsum_labels(vid_name)
+        else:
+            raise ValueError('Invalid dataset provided.')
+            
+        orig_labels = torch.FloatTensor(orig_labels)
+        label_scores = orig_labels
+        if npad_frames != -1:
+            padded_length = len(orig_labels) + npad_frames
+            if self.debug_mode:
+                print(f"[GetSegmentLabelScores] " +\
+                    f"Padding {len(label_scores)} label scores to match the {padded_length} segment frames.")
+            # We still need to pad to ensure a 1:1 mapping between segments frames & scores.
+            label_scores = self._pad_labels(orig_labels, padded_length)
+        label_scores = self._aggregate_label_scores(orig_labels, s_dimsize)
+        return label_scores
 
     def _get_summe_labels(self, vid_name: str) -> torch.FloatTensor:
         '''
@@ -160,44 +182,30 @@ class Summarizer_Dataset(Dataset):
         return gt_scores / MAX_SCORE 
 
 
-    def _get_labels_for_downsampled_segments(self, dwns_nframes: int, 
-        nsegments: int,
-        orig_labels: torch.FloatTensor) -> torch.Tensor:
+    def _aggregate_label_scores(self, orig_labels: torch.FloatTensor, nsegments: int) -> torch.Tensor:
         '''
         The original FPS *may be higher than* the downsampled segments. This means we
         must aggregate the original PER-FRAME labels from the original video such
         that they correspond to the downsampled video.
 
-        This is achieved by first deriving the number of segments in each video based
-        on the downsampled video. Then, we refer to the original video PER-FRAME labels
-        and aggregate them based on which segment the fall under. The segment-level label
-        score is calculated as the average of frame-level label scores, resulting in a score in [0, 1].
+        This is done via segmenting the original labels into contiguous groups. There may be some numerical
+        inconsistencies, but in general this should work.
 
         :param downs_nframes: the number of frames in the downampled video
-        :param num_frames_per_segment: the number of frames in each segment
-        :param nsegments: the number of segments in each video
-        :param orig_labels: the per-frame label assignment in the original video
+        :param orig_labels: the per-frame label scores in the original video
+        :param nsegments: the number of segments to aggregate into
         :return: aggregated segment label_scores
         '''
         
         # Find out how many frames would be in each segment if we
         # were to divide the original video into the same number of
         # segments.
-        
-        orig_nframes = len(orig_labels)
-        if orig_nframes == dwns_nframes:
-          if self.debug_mode:
-            print(f"[GetLabelsForDownsampledSegments] No aggregation needed." +\
-                  f" videos both have {orig_nframes} frames.")
-          return torch.squeeze(orig_labels)
+        if self.debug_mode:
+            print(f"[GetLabelsForDownsampledSegments] aggregating {len(orig_labels)} into {nsegments} segments")
 
+        orig_nframes = len(orig_labels)
         orig_frames_per_segment = int(orig_nframes / nsegments)
         label_scores = torch.zeros(nsegments)
-        if self.debug_mode:
-          print(f"[GetLabelsForDownsampledSegments] " +\
-                f"Aggregating labels for {orig_nframes}-frames video" +\
-                f" into {nsegments} segments for downsampled video of" +\
-                f" {dwns_nframes} frames.")
         for s_i in range(nsegments):
             label_scores[s_i] = orig_labels[
                 s_i * orig_frames_per_segment : 
@@ -207,7 +215,13 @@ class Summarizer_Dataset(Dataset):
 
 
     def _pad_segments(self, segments: torch.Tensor,  padded_length: int) -> torch.Tensor:
-        n_segments, frames_per_segment, h, w, c = segments[0].shape
+        '''
+        Expects a segments tensor of 5 dimensions (imagine as a n_segments-length list of frames_per_segments frames
+        where each frame is h x w x c). Pads the tensor such that the new length is padded_length.
+        '''
+        n_segments, frames_per_segment, h, w, c = segments.shape
+        if padded_length < n_segments:
+            raise ValueError(f"padded_length={padded_length} must be larger than the current number of segments={n_segments}")
         n_added_segments = padded_length - n_segments
         padding = torch.zeros((n_added_segments, frames_per_segment, h, w, c), dtype=torch.uint8)
         segments = torch.cat([segments, padding])
@@ -215,8 +229,9 @@ class Summarizer_Dataset(Dataset):
 
 
     def _pad_labels(self, label_scores: torch.Tensor, padded_length: int):
-        return torch.cat(
-            label_scores, torch.zeros(padded_length - len(label_scores), dtype=torch.uint8))
+        return torch.cat((
+                label_scores, 
+                torch.zeros(padded_length - len(label_scores), dtype=torch.uint8)))
 
 
     def _getfps(self, video_filepath: str) -> int:
@@ -230,37 +245,40 @@ class Summarizer_Dataset(Dataset):
             # Obtain the next video.        
             video_filepath = self.videos[idx]
             vid_name = self._get_vidname(video_filepath)
-            segments, nframes = self._get_video_segments(video_filepath, self.size,
-                                                self.num_frames_per_segment)
-            nsegments = len(nsegments)
-            dwns_nframes = nsegments * self.num_frames_per_segment
+            video = self._get_resized_video(video_filepath, self.size)
+            nframes = video.shape[0]
+            assert nframes != 0, "No video data retrieved: 0 frames read."
             
+            # Obtain the video segments.
+            segments = self._get_video_segments(video, self.num_frames_per_segment)
+            s_dimsize, f_dimsize, _, _, _ = segments.shape
+            assert s_dimsize * f_dimsize >= nframes, f"Segments should contain more or equivalent # frames as {nframes}."
 
-            # Obtain the ground truth data. Given that the FPS of the input
-            # may not match the original source in the original Summe & TVSum
-            # datasets, we will need to aggregate the frame-level importance scores
-            # accordingly.
-            orig_labels = None
-            if self.dataset_name == "summe":
-                orig_labels = self._get_summe_labels(vid_name)
-            elif self.dataset_name == "tvsum":
-                orig_labels = self._get_tvsum_labels(vid_name)
-            else:
-                raise ValueError('Invalid dataset provided.')
-
+            # Obtain the ground truth data.
+            npad_frames = s_dimsize * f_dimsize - nframes
+            label_scores = self._get_segment_label_scores(vid_name, s_dimsize, npad_frames)
+            assert len(label_scores) == s_dimsize,\
+                f"Incongruency detected between {len(label_scores)} scores and {s_dimsize} segments."
             
-            # downsampled_fps = self._getfps(video_filepath)
-            label_scores = self._get_labels_for_downsampled_segments(
-                dwns_nframes, self.num_frames_per_segment, nsegments, orig_labels)
-            
+            # Slice or pad to ensure self.req_segment_count number of segments.
             if self.req_segment_count != -1:
-                # We need to pad segments to the length specified by the Dataset.
-                segments = self._pad_segments(segments, self.req_segment_count)
-                label_scores = self._pad_labels(label_scores, self.req_segment_count)
-            elif self.req_segment_count < nsegments:
-                raise ValueError(f"Segment constraint of {self.req_segment_count} is too small for video with {nsegments} segments.")
+                if self.req_segment_count < s_dimsize:
+                    if self.debug_mode:
+                        print(f"Slicing segments {s_dimsize}->{self.req_segment_count}.")
+                        print(f"Slicing scores {len(label_scores)}->{self.req_segment_count}.")
+                    segments = segments[:self.req_segment_count]
+                    label_scores = label_scores[:self.req_segment_count]
+
+                elif self.req_segment_count > s_dimsize:
+                    if self.debug_mode:
+                        print(f"Padding segments {s_dimsize}->{self.req_segment_count}.")
+                        print(f"Padding scores {len(label_scores)}->{self.req_segment_count}.")
+                    # We need to pad segments to the length specified by the Dataset.
+                    segments = self._pad_segments(segments, self.req_segment_count)
+                    label_scores = self._pad_labels(label_scores, self.req_segment_count)
             
-            assert label_scores.shape[0] == nsegments, "Something is wrong with the code. Segment lengths do not match."
+            
+            # Return the next data sample.
             if self.is_video_only:
                 return {
                     "segments": segments,
@@ -280,33 +298,127 @@ class Summarizer_Dataset(Dataset):
             print("Cannot procure item. Error encountered")
             return None
 
+
 if __name__ == '__main__':
-    # Use this for SumMe
-    # train_dataset = Summarizer_Dataset(
-    #     dataset_name='summe', 
-    #     data_list_file = "/content/cs6998_05/drive/gdata/splits/summe_all.txt",
-    #     # data_list_file = "/content/cs6998_05/drive/gdata/splits/2fps_summe_all.txt",
-    #     gt_root = "/content/cs6998_05/drive/gdata/SumMe/GT", 
-    #     debug_mode = True)
+    # SumMe testing
+    rs_summe_dataset = Summarizer_Dataset(
+        dataset_name='summe', 
+        data_list_file = "../data/splits/summe_2train.txt",
+        gt_root = "../data/gt/summe", 
+        req_segment_count = 256,
+        debug_mode = True)
+    summe_dataset = Summarizer_Dataset(
+        dataset_name='summe', 
+        data_list_file = "../data/splits/summe_2train.txt",
+        gt_root = "../data/gt/summe", 
+        debug_mode = True)
+    rs_tvsum_dataset = Summarizer_Dataset(
+        dataset_name='tvsum', 
+        data_list_file = "../data/splits/tvsum_3train.txt",
+        gt_root = "../data/gt/tvsum/ydata-tvsum50.mat", 
+        req_segment_count = 256,
+        debug_mode = True)
+    tvsum_dataset = Summarizer_Dataset(
+        dataset_name='tvsum', 
+        data_list_file = "../data/splits/tvsum_3train.txt",
+        gt_root = "../data/gt/tvsum/ydata-tvsum50.mat", 
+        debug_mode = True)
 
-    ###### SumMe Testing
-    # labels = train_dataset._get_summe_labels('playing_ball')
-    # segments = train_dataset._get_video_segments('/content/cs6998_05/drive/gdata/SumMe/videos/playing_ball.mp4', 112, 32)
-    # label_scores = train_dataset._get_labels_for_downsampled_segments(
-    #           1844, 32, len(segments), labels)
-    # e = train_dataset.__getitem__(0)
+    
+    print("################################# DATASET AGNOSTIC TESTING #################################")
+    summarizer_dataset = rs_summe_dataset 
+
+    print("\n################################# Segment Padding Testing #################################")
+    rand_segments = torch.rand(50, 16, 112, 112, 3)
+    padded_length = 200
+    padded_segments = summarizer_dataset._pad_segments(rand_segments, padded_length)
+    assert padded_segments.shape[0] == padded_length, "_pad_segments(...) failed"
+    print("Check!")
+
+    print("\n################################# Label Score Aggregation Testing #################################")
+    rand_labels = torch.rand(4494)
+    down_nframes = 1440
+    nsegments =int(down_nframes / 16)
+    agg_scores = summarizer_dataset._aggregate_label_scores(rand_labels, nsegments)
+    assert agg_scores.shape[0] == nsegments, "_aggregate_label_scores(...) failed"
+    print("Check!")
+
+    print("\n################################# Getting Video Segments testing #################################")
+    video_filepath = summarizer_dataset.videos[0]
+    print(f"[TEST] Getting {video_filepath}")
+    video = summarizer_dataset._get_resized_video(video_filepath, summarizer_dataset.size)
+    nframes = video.shape[0]
+    segments = summarizer_dataset._get_video_segments(video, summarizer_dataset.num_frames_per_segment)
+    s, f, _, _, _ = segments.shape
+    assert s * f == math.ceil(nframes / summarizer_dataset.num_frames_per_segment) * summarizer_dataset.num_frames_per_segment,\
+        f"_get_video_segments(...) failed {s * f} != {math.ceil(nframes / summarizer_dataset.num_frames_per_segment) * summarizer_dataset.num_frames_per_segment}"
+    print("Check!")
+
+    print("\n################################# DATASET SPECIFIC TESTING #################################")
+    print("\n################################# Test summe importance score loading. #################################")
+    summe_vid = 'Air_Force_One'
+    summe_vid_is = rs_summe_dataset._get_summe_labels(summe_vid)
+    assert len(summe_vid_is) == 4494, "Air_Force_One should have 4494 frames"
+    print("Check!")
+    
+    print("\n################################# Test tvsum importance score loading. #################################")
+    tvsum_vid = 'eQu1rNs0an0'
+    tvsum_vidis = rs_tvsum_dataset._get_tvsum_labels(tvsum_vid)
+    assert len(tvsum_vidis) == 4931, "eQu1rNs0an0 should have 4931 frames"
+    print("Check!")
+    
+    print("\n################################# Getting Summe Item testing #################################")
+    # In this test, we are *PADDING* segments.
+    rs_summe_data = rs_summe_dataset.__getitem__(0) # Should be playing_ball.mp4 padded up to 256 segments.
+    padded_segments = rs_summe_data['segments']
+    padded_scores = rs_summe_data['scores']
+    padded_nframes = rs_summe_data['n_frames']
+    padded_nframes_per_seg = rs_summe_data['n_frames_per_segment']
+    assert padded_scores.shape[0] == rs_summe_dataset.req_segment_count,\
+        f"{padded_segments.shape[0]} segments found but {rs_summe_dataset.req_segment_count} segments wanted"
+    assert len(padded_scores) == rs_summe_dataset.req_segment_count,\
+        f"{len(padded_scores)} scores found but {rs_summe_dataset.req_segment_count} scores wanted"    
+    # Check that the unpadded portions match.
+    segment_padding_start_idx = int(padded_nframes / padded_nframes_per_seg) + 1
+    derived_unpadded_segments = padded_segments[:segment_padding_start_idx]
+    derived_unpadded_scores = padded_scores[:segment_padding_start_idx]
+    summe_data = summe_dataset.__getitem__(0)
+    assert torch.all(derived_unpadded_segments == summe_data['segments']).item(), "Summe segment padding is incorrect."
+    assert torch.all(derived_unpadded_scores == summe_data['scores']).item(), "Summe score padding is incorrect."
+    print("Check!")
+
+    print("\n################################# Getting Tvsum Item testing #################################")
+    # In this test, we are *REMOVING* segments because there are too many.
+    rs_tvsum_data = rs_tvsum_dataset.__getitem__(0) # Should be eQu1rNs0an0.mp4 sliced down to 256 segments.
+    sliced_segments = rs_tvsum_data['segments']
+    sliced_scores = rs_tvsum_data['scores']
+    sliced_nframes = rs_tvsum_data['n_frames']
+    sliced_nframes_per_seg = rs_tvsum_data['n_frames_per_segment']
+    assert sliced_scores.shape[0] == rs_tvsum_dataset.req_segment_count,\
+        f"{sliced_segments.shape[0]} segments found but {rs_tvsum_dataset.req_segment_count} segments wanted"
+    assert len(sliced_scores) == rs_tvsum_dataset.req_segment_count,\
+        f"{len(sliced_scores)} scores found but {rs_tvsum_dataset.req_segment_count} scores wanted"    
+    # Check that slicing occurred.
+    tvsum_data = tvsum_dataset.__getitem__(0)
+    assert sliced_segments.shape[0] < tvsum_data['segments'].shape[0], "tvsum segment slicing is incorrect."
+    assert len(sliced_scores) < len(tvsum_data['scores']), "tvsum score slicing is incorrect."
+    print("Check!")
 
 
-    # # Use this for TVSum
-    # train_dataset = Summarizer_Dataset(
-    #     dataset_name='tvsum', 
-    #     data_list_file = "../data/splits/summe_all.txt",
-    #     gt_root = "../data/gt/summe", 
-    #     debug_mode = True)
-    # train_dataloader = DataLoader(train_dataset, batch_size=1)
 
-    # for i, data in enumerate(train_dataloader):
-    #     print(f"{len(data['segments'])} segments of " +\
-    #           f"{data['segments'][0].shape} shape and " +\
-    #           f"{torch.squeeze(data['scores']).shape} importance scores obtained.")
-        
+    ###################################################################################################
+    print("\n################################# Reading Test #################################")
+    print("Reading from summe...")
+    rs_summe_dataset.debug_mode = False
+    train_dataloader = DataLoader(rs_summe_dataset, batch_size=1)
+    for i, data in enumerate(train_dataloader):
+        print(f"{len(data['segments'])} segments of " +\
+              f"{data['segments'][0].shape} shape and " +\
+              f"{torch.squeeze(data['scores']).shape} importance scores obtained.")
+    print("Reading from tvsum...")
+    tvsum_dataset.debug_mode = False
+    train_dataloader = DataLoader(tvsum_dataset, batch_size=1)
+    for i, data in enumerate(train_dataloader):
+        print(f"{len(data['segments'])} segments of " +\
+              f"{data['segments'][0].shape} shape and " +\
+              f"{torch.squeeze(data['scores']).shape} importance scores obtained.")
