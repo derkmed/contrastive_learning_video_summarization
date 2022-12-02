@@ -8,7 +8,15 @@ Query-based video summarization aims to provide customized video summaries based
 
 ## Instructions
 Run the following to train our TCLR network.
+1. Preparation
+Download TVSum and Summe Datasets. Define your data_list that contains the absolute paths for all your videos for training/testing. (TODO (derekahmed) complete me)
+
+2. Pretraining
+Generate TCLR embeddings.
 ```
 cd TCLR
-python sumtclr_train_gen_all_step.py --run_id 'd-augmented_tvsum' --num_epochs 3 --num_dataloader_workers 4 --traintestlist ../data/splits/augmented_tvsum_80.txt --repeats 1 --batch_size=8 | tee d-augmented_tclr.log
+python sumtclr_train_gen_all_step.py --run_id 'd-augmented_tvsum' --num_epochs 3 --num_dataloader_workers 4 --data_list ../data/splits/augmented_tvsum_80.txt --repeats 1 --batch_size=8 | tee d-augmented_tclr.log
 ```
+
+3. Summarization
+Train summarization model. (TODO (derekahmed) complete me)
