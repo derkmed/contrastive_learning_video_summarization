@@ -162,7 +162,8 @@ def train_classifier(traintestlist: str, run_id: str, reload: bool, prev_model_f
     n_epochs: int = params.num_epochs,
     n_workers: int = 4,
     n_reads_per_video: int = params.n_reads_per_video,
-    batch_size: int = params.batch_size):
+    batch_size: int = params.batch_size,
+    is_drop_last: bool = False):
 
     use_cuda = True
     writer = SummaryWriter(os.path.join(cfg.logs, str(run_id)))
@@ -228,7 +229,8 @@ def train_classifier(traintestlist: str, run_id: str, reload: bool, prev_model_f
     train_dataset = SummarizationTCLRDataset(shuffle=True, repeats=n_reads_per_video, 
         data_percentage=params.data_percentage, dataset_list_file=traintestlist)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, 
-        shuffle=True, num_workers=n_workers, collate_fn=collate_fn2,
+        shuffle=True, num_workers=n_workers, collate_fn=collate_fn2, 
+        drop_last=is_drop_last
         generator=torch.Generator(device='cuda'))
     print(f'Train dataset length: {len(train_dataset)}')                    # See sparams.n_reads_per_video
     print(f'Train dataset steps per epoch: {len(train_dataset)/batch_size}')
@@ -318,7 +320,7 @@ def train_classifier(traintestlist: str, run_id: str, reload: bool, prev_model_f
             data_percentage=params.data_percentage, dataset_list_file=traintestlist)
         train_dataloader = DataLoader(train_dataset, batch_size=batch_size, 
             shuffle=True, num_workers=n_workers, collate_fn=collate_fn2,
-            generator=torch.Generator(device='cuda'))
+            drop_last=is_drop_last, generator=torch.Generator(device='cuda'))
         print(f'Train dataset length: {len(train_dataset)}')
         print(f'Train dataset steps per epoch: {len(train_dataset)/batch_size}')
        
@@ -337,9 +339,10 @@ if __name__ == '__main__':
         help='Model weights should be here.')
     parser.add_argument("--num_epochs", dest='num_epochs', type=int, required=False)
     parser.add_argument("--num_dataloader_workers", dest='num_dataloader_workers', type=int, required=False)
-    parser.add_argument("--traintestlist", dest='traintestlist', type=str, required=True)
+    parser.add_argument("--data_list", dest='data_list', type=str, required=True)
     parser.add_argument("--repeats", dest='nrepeats', type=int, required=False, default=1)
     parser.add_argument("--batch_size", dest='nbatch_size', type=int, required=False, default=params.batch_size)
+    parser.add_argument("--drop_last", dest='is_drop_last', type=bool, required=False, default=False)
 
     print()
     print('TCLR pretraining starts...')
@@ -351,9 +354,10 @@ if __name__ == '__main__':
     run_id = args.run_id
     print(f'Run_id {args.run_id}')
 
-    train_classifier(args.traintestlist, str(run_id), args.reload, args.prev_model_path, 
+    train_classifier(args.data_list, str(run_id), args.reload, args.prev_model_path, 
         n_epochs=args.num_epochs, n_workers=args.num_dataloader_workers, 
-        n_reads_per_video=args.nrepeats, batch_size=args.nbatch_size)
+        n_reads_per_video=args.nrepeats, batch_size=args.nbatch_size, 
+        is_drop_last=args.is_drop_last)
 
 
 
