@@ -76,7 +76,7 @@ def load_tclr_backbone(saved_model_file: str = None, d_output: int = 128):
     print(f'model {saved_model_file} loaded successsfully!')
     
     # Added for Summarization.
-    model.fc = nn.Linear(512, d_output, bias=False)
+    model.fc = nn.Linear(2048, d_output, bias=False)
     return model
 
 
@@ -117,8 +117,12 @@ class TCLRSummarizer(nn.Module):
                 param.requires_grad = False
             self.base_model.fc.requires_grad = True
 
-        self.d_model = d_model
-        self.mlp = mlp(final_embedding_size=d_model)
+        self.d_model = d_model     
+        self.mlp = nn.Sequential(
+            nn.Linear(d_model, d_model), 
+            nn.BatchNorm1d(d_model), 
+            nn.ReLU()
+        )
         self.pos_enc = PositionalEncoding(self.d_model, dropout)
         encoder_layers = nn.TransformerEncoderLayer(
             d_model=self.d_model, nhead=heads, dropout=dropout
@@ -130,7 +134,8 @@ class TCLRSummarizer(nn.Module):
 
     def forward(self, video):
         # [n_segs, C, S, H, W] -> [n_segs x d_output x 4 x 1 x 1] --> [n_segs x d_output]
-        video_emb = nn.Sequential(self.base_model, self.mlp)(video)
+        video_emb = self.base_model(video)
+        video_emb = self.mlp(video_emb)
         
         # [n_segs, d_model] -> [1, n_segs, d_model]
         video_emb = video_emb.unsqueeze(0)
@@ -159,11 +164,11 @@ if __name__ == '__main__':
     print("Loading TCLR Backbone")
     tclr = load_tclr_backbone(SAVED_MODEL_FILE)
     summtclr1 = TCLRSummarizer(SAVED_MODEL_FILE, d_model=128)
-    summtclr2 = TCLRSummarizer(SAVED_MODEL_FILE, d_model=256)
-    summtclr5 = TCLRSummarizer(SAVED_MODEL_FILE, d_model=512)
+    # summtclr2 = TCLRSummarizer(SAVED_MODEL_FILE, d_model=256)
+    # summtclr5 = TCLRSummarizer(SAVED_MODEL_FILE, d_model=512)
 
     x = torch.rand(10, 3, 16, 112, 112) # 10 segments of 16 frames 3 x 112 x 112
     e = tclr(x)
     emb1, logits1 = summtclr1(x)
-    emb2, logits2 = summtclr2(x)
-    emb5, logits5 = summtclr5(x)
+    # emb2, logits2 = summtclr2(x)
+    # emb5, logits5 = summtclr5(x)
