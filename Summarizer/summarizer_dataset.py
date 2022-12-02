@@ -279,8 +279,8 @@ class Summarizer_Dataset(Dataset):
             
             
             # Return the next data sample.
-            # [S, F, H, W, C] -> [S, C, F, H, W]
-            segments = segments.permute(0, 4, 2, 3)
+            # [nsegments, nframes, H, W, nchannels] -> [nsegments, nchannels, nframes, H, W]
+            segments = segments.permute(0, 4, 1, 2, 3)
             if self.is_video_only:
                 return {
                     "segments": segments,
