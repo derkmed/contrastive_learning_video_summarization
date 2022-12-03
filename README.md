@@ -15,7 +15,7 @@ Download TVSum and Summe Datasets. Define your data_list that contains the absol
 Generate TCLR embeddings.
 ```
 cd TCLR
-python sumtclr_train_gen_all_step.py --run_id 'd-augmented_tvsum' --num_epochs 3 --num_dataloader_workers 4 --data_list ../data/splits/augmented_tvsum_80.txt --repeats 1 --batch_size=8 | tee d-augmented_tclr.log
+python sumtclr_train_gen_all_step.py --run_id '[RUN_ID]]' --num_epochs [NUMBER_OF_EPOCHS] --num_dataloader_workers [NUMBER_OF_WORKERS] --data_list ../data/splits/augmented_tvsum_80.txt --batch_size=8 | tee derek_tclr_stdout.log
 ```
 
 3. Summarization
