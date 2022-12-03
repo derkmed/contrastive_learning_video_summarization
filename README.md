@@ -7,16 +7,22 @@ Query-based video summarization aims to provide customized video summaries based
 
 
 ## Instructions
-Run the following to train our TCLR network.
+0. Set up you renvironment.
+```
+conda env create -f derek_tclr_env.yml
+conda activate derek_tclr
+```
+
 1. Preparation
-Download TVSum and Summe Datasets. Define your data_list that contains the absolute paths for all your videos for training/testing. (TODO (derekahmed) complete me)
+Download TVSum and Summe Datasets. Define your data lists (contains the absolute paths for all your videos for training/testing). Store these in the `data/splits` folder.
 
 2. Pretraining
 Generate TCLR embeddings.
 ```
 cd TCLR
-python sumtclr_train_gen_all_step.py --run_id '[RUN_ID]]' --num_epochs [NUMBER_OF_EPOCHS] --num_dataloader_workers [NUMBER_OF_WORKERS] --data_list ../data/splits/augmented_tvsum_80.txt --batch_size=8 | tee derek_tclr_stdout.log
+python sumtclr_train_gen_all_step.py --run_id '[RUN_ID]]' --num_epochs [NUMBER_OF_EPOCHS] --num_dataloader_workers [NUMBER_OF_WORKERS] --data_list ../data/splits/augmented_tvsum_80.txt --batch_size=8 | tee tclr_stdout.log
 ```
 
+`tclr_stdout.log` will indicate where the model weights are stored. It should be in a `.pth` file
 3. Summarization
 Train summarization model. (TODO (derekahmed) complete me)
