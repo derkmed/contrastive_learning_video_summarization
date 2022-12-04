@@ -311,7 +311,7 @@ class Summarizer_Dataset(Dataset):
             else:
                 return {
                     "segments": segments,
-                    "scores": label_scores,
+                    "label_scores": label_scores,
                     "n_frames": nframes,
                     "n_frames_per_segment": self.num_frames_per_segment
                     }
