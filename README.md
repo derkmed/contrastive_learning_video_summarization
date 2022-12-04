@@ -24,5 +24,10 @@ python sumtclr_train_gen_all_step.py --run_id '[RUN_ID]]' --num_epochs [NUMBER_O
 ```
 
 `tclr_stdout.log` will indicate where the model weights are stored. It should be in a `.pth` file
+
 3. Summarization
-Train summarization model. (TODO (derekahmed) complete me)
+Train Summarizer on TCLR embeddings.
+```
+cd Summarizer
+python main.py | tee summarizer_training.log
+```
