@@ -230,7 +230,7 @@ def train_classifier(traintestlist: str, run_id: str, reload: bool, prev_model_f
         data_percentage=params.data_percentage, dataset_list_file=traintestlist)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, 
         shuffle=True, num_workers=n_workers, collate_fn=collate_fn2, 
-        drop_last=is_drop_last
+        drop_last=is_drop_last,
         generator=torch.Generator(device='cuda'))
     print(f'Train dataset length: {len(train_dataset)}')                    # See sparams.n_reads_per_video
     print(f'Train dataset steps per epoch: {len(train_dataset)/batch_size}')
