@@ -52,28 +52,29 @@ def load_tclr_backbone(saved_model_file: str = None, d_output: int = 128):
     model.layer4[0].downsample[0] = nn.Conv3d(256, 512,\
                           kernel_size = (1, 1, 1), stride = (1, 2, 2), bias=False)
 
-    # Weight copying.
-    pretrained = None
-    if torch.cuda.is_available():
-        pretrained = torch.load(saved_model_file)
-    else:
-        pretrained = torch.load(saved_model_file, map_location=torch.device('cpu'))
-    pretrained_kvpair = pretrained['state_dict']
-    model_kvpair = model.state_dict()
-    for layer_name, weights in pretrained_kvpair.items():
-        if 'module.1.' in layer_name:
-            continue              
-        elif '1.' == layer_name[:2]:
-            continue
-        if 'module.0.' in layer_name:
-            layer_name = layer_name.replace('module.0.','')
-        if 'module.' in layer_name:
-            layer_name = layer_name.replace('module.','')
-        elif '0.' == layer_name[:2]:
-            layer_name = layer_name[2:]
-        model_kvpair[layer_name] = weights   
-    model.load_state_dict(model_kvpair, strict=True)
-    print(f'model {saved_model_file} loaded successsfully!')
+    if saved_model_file:
+        # Weight copying (cannot naively load the weights due to layer alterations).
+        pretrained = None
+        if torch.cuda.is_available():
+            pretrained = torch.load(saved_model_file)
+        else:
+            pretrained = torch.load(saved_model_file, map_location=torch.device('cpu'))
+        pretrained_kvpair = pretrained['state_dict']
+        model_kvpair = model.state_dict()
+        for layer_name, weights in pretrained_kvpair.items():
+            if 'module.1.' in layer_name:
+                continue              
+            elif '1.' == layer_name[:2]:
+                continue
+            if 'module.0.' in layer_name:
+                layer_name = layer_name.replace('module.0.','')
+            if 'module.' in layer_name:
+                layer_name = layer_name.replace('module.','')
+            elif '0.' == layer_name[:2]:
+                layer_name = layer_name[2:]
+            model_kvpair[layer_name] = weights   
+        model.load_state_dict(model_kvpair, strict=True)
+        print(f'model {saved_model_file} loaded successsfully!')
     
     # Added for Summarization.
     model.fc = nn.Linear(2048, d_output, bias=False)
@@ -146,6 +147,45 @@ class TCLRSummarizer(nn.Module):
         logits = self.fc(segment_embeddings)
         return segment_embeddings, logits
     
+class RandomSummarizer(nn.Module):
+
+    def __init__(self, d_model: int = 128, freeze_base: bool = True, 
+        heads: int = 8, enc_layers: int = 6, dropout: float = 0.1) -> None:
+        """
+        d_model determines the output embedding dimensionality.
+        """
+        super(RandomSummarizer, self).__init__()
+        # NOTE: model expects expects [B x C x S x H x W] = [nsegments, nchannels, nframes_per_segments, size, size]
+        self.base_model = load_tclr_backbone(d_output=d_model)
+        self.d_model = d_model     
+        self.mlp = nn.Sequential(
+            nn.Linear(d_model, d_model), 
+            nn.BatchNorm1d(d_model), 
+            nn.ReLU()
+        )
+        self.pos_enc = PositionalEncoding(self.d_model, dropout)
+        encoder_layers = nn.TransformerEncoderLayer(
+            d_model=self.d_model, nhead=heads, dropout=dropout
+        )
+        self.transformer_encoder = nn.TransformerEncoder(
+            encoder_layers, num_layers=enc_layers
+        )
+        self.fc = nn.Linear(self.d_model, 1)
+
+    def forward(self, video):
+        # [n_segs, C, S, H, W] -> [n_segs x d_output x 4 x 1 x 1] --> [n_segs x d_output]
+        segment_embeddings = []
+        for segment in video:
+            emb = self.base_model(segment)
+            emb = self.mlp(emb)
+            segment_embeddings.append(emb)
+        
+        segment_embeddings = torch.stack(segment_embeddings)
+        segment_embeddings = self.pos_enc(segment_embeddings)  # Add pos enc as nn.Trasnformer doesnt have it
+        segment_embeddings = self.transformer_encoder(segment_embeddings)
+        logits = self.fc(segment_embeddings)
+        return segment_embeddings, logits
+
 def print_param_size(model_state_dict):
     for param_tensor in model_state_dict:
         print(param_tensor, "\t",model_state_dict[param_tensor].size())       
@@ -159,6 +199,7 @@ if __name__ == '__main__':
     print("Loading TCLR Backbone")
     tclr = load_tclr_backbone(SAVED_MODEL_FILE)
     summtclr1 = TCLRSummarizer(SAVED_MODEL_FILE, d_model=128)
+    summRand = RandomSummarizer(d_model=128)
 
     # TCLR Test
     x = torch.rand(10, 3, 16, 112, 112) # 10 segments of 16 frames 3 x 112 x 112
@@ -171,5 +212,15 @@ if __name__ == '__main__':
     # Summarizer Batch Test
     batch_x = torch.rand(2, 8, 3, 16, 112, 112) # 2 batches of 8 segments of 16 frames 3 x 112 x 112
     b_emb, b_logits = summtclr1(batch_x)
+
+    
+
+    # Raw Summarizer Individual Test
+    individual_x = torch.rand(2, 8, 3, 16, 112, 112) # 1 sample of 8 segments of 16 frames 3 x 112 x 112
+    i_emb, i_logits = summRand(individual_x)
+    
+    # Raw Summarizer Batch Test
+    batch_x = torch.rand(2, 8, 3, 16, 112, 112) # 2 batches of 8 segments of 16 frames 3 x 112 x 112
+    b_emb, b_logits = summRand(batch_x)
 
     
