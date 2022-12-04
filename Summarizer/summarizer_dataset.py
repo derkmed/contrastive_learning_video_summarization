@@ -317,7 +317,7 @@ class Summarizer_Dataset(Dataset):
                     }
         
         except Exception as e:
-            print("Encountered Exception :( : " + e)
+            print(e)
             print("Cannot procure item. Error encountered")
             return None
 

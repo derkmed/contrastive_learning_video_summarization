@@ -9,6 +9,12 @@ def get_args(description="MILNCE"):
     parser.add_argument("--checkpoint_dir", type=str, default="/home/derekhmd/cs6998_05/data/checkpoints",
         help="checkpoint model folder",
     )
+    parser.add_argument("--training_dataset", type=str, default="/home/derekhmd/cs6998_05/data/splits/2fps_augmented_80p_tvsum.txt",
+        help="filepath for the training dataset",
+    )
+    parser.add_argument("--testing_dataset", type=str, default="/home/derekhmd/cs6998_05/data/splits/2fps_20p_tvsum.txt",
+        help="filepath for the testing dataset",
+    )
     parser.add_argument("--optimizer", type=str, default="adam", help="opt algorithm")
     parser.add_argument("--weight_decay", "--wd",
         default=0.00001,
@@ -17,7 +23,7 @@ def get_args(description="MILNCE"):
         help="weight decay (default: 1e-4)",
     )
     parser.add_argument("--num_thread_reader", type=int, default=4, help="")
-    parser.add_argument("--batch_size", type=int, default=3, help="batch size")
+    parser.add_argument("--batch_size", type=int, default=2, help="batch size")
     parser.add_argument("--batch_size_val", type=int, default=8, help="batch size eval")
     parser.add_argument("--momemtum", type=float, default=0.9, help="SGD momemtum")
     parser.add_argument("--log_freq", type=int, default=1, help="Information display frequence")
@@ -55,7 +61,7 @@ def get_args(description="MILNCE"):
         help="",
     )
     parser.add_argument("--cudnn_benchmark", type=int, default=0, help="")
-    parser.add_argument("--epochs", default=1, type=int, metavar="N", help="number of total epochs to run")
+    parser.add_argument("--epochs", default=8, type=int, metavar="N", help="number of total epochs to run")
     parser.add_argument(
         "--start-epoch",
         default=0,

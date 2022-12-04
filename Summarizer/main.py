@@ -100,11 +100,11 @@ def main_worker(gpu, ngpus_per_node, args):
     print("Finished loading model")
 
     train_dataset = Summarizer_Dataset(
-        data_list_file = "../data/splits/augmented_tvsum_80.txt",
+        data_list_file = args.training_dataset,
         req_segment_count=args.req_segment_count,
         num_frames_per_segment=args.num_frames_per_segment)
     test_dataset = Summarizer_Dataset(
-        data_list_file = "../data/splits/20p_tvsum_list.txt", 
+        data_list_file = args.testing_dataset, 
         req_segment_count=args.req_segment_count,
         num_frames_per_segment=args.num_frames_per_segment)
     if args.distributed:
@@ -137,7 +137,6 @@ def main_worker(gpu, ngpus_per_node, args):
     # Evaluation loop.
     if args.evaluate:
         print("starting eval...")
-        # TODO (derekahmed) fix me
         evaluate(test_loader, model, epoch, tb_logger, criterion_c, args)
         return
 
