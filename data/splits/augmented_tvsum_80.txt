@@ -60,6 +60,6 @@
 /home/derekhmd/data/videos/summe_videos/Saving_dolphines.mp4 59
 /home/derekhmd/data/videos/summe_videos/Fire_Domino.mp4 60
 /home/derekhmd/data/videos/summe_videos/Excavators_river_crossing.mp4 61
-/home/derekhmd/data/videos/summe_videos/Eiffel_Tower.mp4 66
+/home/derekhmd/data/videos/summe_videos/Eiffel_Tower.mp4 62
 /home/derekhmd/data/videos/summe_videos/Bike_Polo.mp4 63
 /home/derekhmd/data/videos/summe_videos/Base_jumping.mp4 64
