@@ -120,11 +120,12 @@ class TCLRSummarizer(nn.Module):
         self.base_model.fc.requires_grad = True
 
         self.d_model = d_model     
-        self.mlp = nn.Sequential(
-            nn.Linear(d_model, d_model), 
-            nn.BatchNorm1d(d_model), 
-            nn.ReLU()
-        )
+        if self.apply_mlp_beforehand:
+            self.mlp = nn.Sequential(
+                nn.Linear(d_model, d_model), 
+                nn.BatchNorm1d(d_model), 
+                nn.ReLU()
+            )
         self.pos_enc = PositionalEncoding(self.d_model, dropout)
         encoder_layers = nn.TransformerEncoderLayer(
             d_model=self.d_model, nhead=heads, dropout=dropout

@@ -10,12 +10,13 @@ def get_args(description="MILNCE"):
         help="checkpoint model folder",
     )
     parser.add_argument("--training_dataset", type=str, 
-        default="/home/derekhmd/cs6998_05/data/splits/2fps_augmented_80p_tvsum.txt",
+        # default="/home/derekhmd/cs6998_05/data/splits/2fps_augmented_80p_tvsum.txt",
+        default="/home/derekhmd/cs6998_05/data/splits/augmented_80ptvsum.txt",
         # default="/home/derekhmd/cs6998_05/data/splits/2fps_20p_tvsum.txt",
         help="filepath for the training dataset",
     )
     parser.add_argument("--testing_dataset", type=str, 
-        default="/home/derekhmd/cs6998_05/data/splits/2fps_20p_tvsum.txt",
+        default="/home/derekhmd/cs6998_05/data/splits/20p_tvsum.txt",
         help="filepath for the testing dataset",
     )
     parser.add_argument("--optimizer", type=str, default="adam", help="opt algorithm")
@@ -33,12 +34,12 @@ def get_args(description="MILNCE"):
     parser.add_argument("--lr_step_size", type=int, default=300, help="Learning Rate Scheduler step size")
     parser.add_argument("--freeze_base", dest="freeze_base", action="store_true", help="whether to freeze the TCLR backbone layer")
     parser.add_argument("--tclr_dim", type=int, default=256, help="The TCLR model dimensionality")
-    parser.add_argument("--k", type=float, default=0.2, help="Top k percent of segments")
+    parser.add_argument("--k", type=float, default=0.45, help="Top k percent of segments")
     parser.add_argument("--log_freq", type=int, default=1, help="Information display frequence")
     parser.add_argument(
         "--req_segment_count",
         type=int,
-        default=50,
+        default=100,
         help="required number of segments",
     )
     parser.add_argument(
