@@ -9,10 +9,13 @@ def get_args(description="MILNCE"):
     parser.add_argument("--checkpoint_dir", type=str, default="/home/derekhmd/cs6998_05/data/checkpoints",
         help="checkpoint model folder",
     )
-    parser.add_argument("--training_dataset", type=str, default="/home/derekhmd/cs6998_05/data/splits/2fps_augmented_80p_tvsum.txt",
+    parser.add_argument("--training_dataset", type=str, 
+        default="/home/derekhmd/cs6998_05/data/splits/2fps_augmented_80p_tvsum.txt",
+        # default="/home/derekhmd/cs6998_05/data/splits/2fps_20p_tvsum.txt",
         help="filepath for the training dataset",
     )
-    parser.add_argument("--testing_dataset", type=str, default="/home/derekhmd/cs6998_05/data/splits/2fps_20p_tvsum.txt",
+    parser.add_argument("--testing_dataset", type=str, 
+        default="/home/derekhmd/cs6998_05/data/splits/2fps_20p_tvsum.txt",
         help="filepath for the testing dataset",
     )
     parser.add_argument("--optimizer", type=str, default="adam", help="opt algorithm")
@@ -23,17 +26,19 @@ def get_args(description="MILNCE"):
         help="weight decay (default: 1e-4)",
     )
     parser.add_argument("--num_thread_reader", type=int, default=4, help="")
-    parser.add_argument("--cadence", type=int, default=10, help="Runs a model checkpoint every n epochs")
-    parser.add_argument("--batch_size", type=int, default=3, help="batch size")
-    parser.add_argument("--batch_size_val", type=int, default=3, help="batch size eval")
+    parser.add_argument("--checkpoint_cadence", type=int, default=10, help="Runs a model checkpoint every n epochs")
+    parser.add_argument("--batch_size", type=int, default=16, help="batch size")
+    parser.add_argument("--batch_size_val", type=int, default=10, help="batch size eval")
     parser.add_argument("--momemtum", type=float, default=0.9, help="SGD momemtum")
-    parser.add_argument("--lr_step_size", type=int, default=100, help="Learning Rate Scheduler step size")
-    parser.add_argument("--k", type=float, default=0.35, help="Top k percent of segments")
+    parser.add_argument("--lr_step_size", type=int, default=300, help="Learning Rate Scheduler step size")
+    parser.add_argument("--freeze_base", dest="freeze_base", action="store_true", help="whether to freeze the TCLR backbone layer")
+    parser.add_argument("--tclr_dim", type=int, default=256, help="The TCLR model dimensionality")
+    parser.add_argument("--k", type=float, default=0.2, help="Top k percent of segments")
     parser.add_argument("--log_freq", type=int, default=1, help="Information display frequence")
     parser.add_argument(
         "--req_segment_count",
         type=int,
-        default=90,
+        default=50,
         help="required number of segments",
     )
     parser.add_argument(
@@ -75,7 +80,7 @@ def get_args(description="MILNCE"):
     parser.add_argument(
         "--lrv",
         "--learning-rate",
-        default=0.01,
+        default=0.001,
         type=float,
         metavar="LRV",
         help="initial learning rate",
@@ -110,7 +115,7 @@ def get_args(description="MILNCE"):
     )
     parser.add_argument(
         "--world-size",
-        default=-1,
+        default=1,
         type=int,
         help="number of nodes for distributed training",
     )
