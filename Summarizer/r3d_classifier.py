@@ -213,7 +213,7 @@ class VideoResNet(nn.Module):
         self.layer3 = self._make_layer(block, conv_makers[2], 256, layers[2], stride=2)
         self.layer4 = self._make_layer(block, conv_makers[3], 512, layers[3], stride=2)
 
-        self.avgpool = nn.AdaptiveAvgPool3d((None, 1, 1))
+        self.avgpool = nn.AdaptiveAvgPool3d((1, 1, 1))
         # self.avgpool = nn.AvgPool3d(kernel_size = (1, 3, 3), stride = (1, 2, 2)) # This can be made adaptive avg for different input size
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 

@@ -77,7 +77,7 @@ def load_tclr_backbone(saved_model_file: str = None, d_output: int = 128):
         print(f'model {saved_model_file} loaded successsfully!')
     
     # Added for Summarization.
-    model.fc = nn.Linear(2048, d_output, bias=False)
+    model.fc = nn.Linear(512, d_output, bias=False)
     return model
 
 
@@ -163,7 +163,6 @@ if __name__ == '__main__':
     print("Loading TCLR Backbone")
     tclr = load_tclr_backbone(SAVED_MODEL_FILE)
     summtclr1 = TCLRSummarizer(SAVED_MODEL_FILE, d_model=128)
-    summRand = RandomSummarizer(d_model=128)
 
     # TCLR Test
     x = torch.rand(10, 3, 16, 112, 112) # 10 segments of 16 frames 3 x 112 x 112
