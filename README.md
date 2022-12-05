@@ -29,5 +29,5 @@ python sumtclr_train_gen_all_step.py --run_id '[RUN_ID]]' --num_epochs [NUMBER_O
 Train Summarizer on TCLR embeddings.
 ```
 cd Summarizer
-python main.py | tee summarizer_training.log
+python main.py --verbose | tee summarizer_training.log
 ```

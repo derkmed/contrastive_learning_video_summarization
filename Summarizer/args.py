@@ -23,14 +23,16 @@ def get_args(description="MILNCE"):
         help="weight decay (default: 1e-4)",
     )
     parser.add_argument("--num_thread_reader", type=int, default=4, help="")
-    parser.add_argument("--batch_size", type=int, default=2, help="batch size")
-    parser.add_argument("--batch_size_val", type=int, default=8, help="batch size eval")
+    parser.add_argument("--batch_size", type=int, default=3, help="batch size")
+    parser.add_argument("--batch_size_val", type=int, default=3, help="batch size eval")
     parser.add_argument("--momemtum", type=float, default=0.9, help="SGD momemtum")
+    parser.add_argument("--lr_step_size", type=int, default=100, help="Learning Rate Scheduler step size")
+    parser.add_argument("--k", type=float, default=0.35, help="Top k percent of segments")
     parser.add_argument("--log_freq", type=int, default=1, help="Information display frequence")
     parser.add_argument(
         "--req_segment_count",
         type=int,
-        default=100,
+        default=90,
         help="required number of segments",
     )
     parser.add_argument(
@@ -72,7 +74,7 @@ def get_args(description="MILNCE"):
     parser.add_argument(
         "--lrv",
         "--learning-rate",
-        default=0.001,
+        default=0.01,
         type=float,
         metavar="LRV",
         help="initial learning rate",
@@ -85,7 +87,6 @@ def get_args(description="MILNCE"):
         action="store_true",
         help="resume training from last checkpoint",
     )
-    parser.add_argument("--finetune", dest="finetune", action="store_true", help="finetune S3D")
     parser.add_argument(
         "-e",
         "--evaluate",
