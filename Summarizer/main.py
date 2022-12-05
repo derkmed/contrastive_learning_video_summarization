@@ -210,13 +210,13 @@ def train(train_loader, model, criterion, optimizer, scheduler, epoch, dataset, 
         if args.verbose and args.rank == 0:
             d = time.time() - s
             current_lr = optimizer.param_groups[0]["lr"]
-            log("Epoch %d, Elapsed Time: %.3f, Epoch status: %.4f, Training loss: %.4f, Learning rate: %.6f"
+            log("Epoch %d, Elapsed Time: %.3f, Epoch status: %.4f, Training loss: %.6f, Learning rate: %.6f"
                 % (epoch + 1, d, args.batch_size * args.world_size * float(i_batch) / len(dataset),
                     running_loss, current_lr), args)
     
     d = time.time() - s
     current_lr = optimizer.param_groups[0]["lr"]
-    log("Epoch %d, Elapsed Time: %.3f, Training loss: %.4f, Learning rate: %.6f"
+    log("Epoch %d, Elapsed Time: %.3f, Training loss: %.6f, Learning rate: %.6f"
         % (epoch + 1, d, running_loss, current_lr), args)
 
 
@@ -267,30 +267,12 @@ def evaluate(test_loader, model, epoch, tb_logger, loss_fun, args):
 
             if args.rank == 0:
                 loss = loss_fun(score.view(-1), label_scores)
-                # summary_frames = torch.argmax(score.data, 1)
 
-                # score = nn.functional.log_softmax(score.view(-1).detach().cpu(), dim=0)
-                # score = nn.functional.normalize(score.view(-1).detach().cpu(), dim=0)
                 summary_ids = (
                     score.detach().cpu().view(-1).topk(int(args.k * len(label_scores)))[1]
                 )
                 summary = np.zeros(len(label_scores))
                 summary[summary_ids] = 1
-                # threshold = 0.85 * summary_frames.max()
-                # print("Thershold: ", threshold)
-                # summary_frames[summary_frames < threshold] = 0
-                # summary_frames[summary_frames > threshold] = 1
-
-                # print(
-                #     "Summary frames: ",
-                #     summary,
-                #     "Labels: ",
-                #     label,
-                #     "Scores: ",
-                #     score.view(-1),
-                #     "label_scores: ",
-                #     label_scores,
-                # )
 
                 f_score, precision, recall = evaluate_summary(
                     summary, 
@@ -313,7 +295,7 @@ def evaluate(test_loader, model, epoch, tb_logger, loss_fun, args):
             "F-Score {} \t"
             "Precision {} \t"
             "Recall {} \t"
-            "Loss {loss.val:.4f} ({loss.avg:.4f})\t".format(
+            "Loss {loss.val:.6f} ({loss.avg:.6f})\t".format(
                 epoch, f_score, precision, recall, loss=losses
             ),
             args,
