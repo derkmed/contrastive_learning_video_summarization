@@ -190,7 +190,7 @@ def main_worker(gpu, ngpus_per_node, args):
         if args.distributed:
             train_sampler.set_epoch(epoch)
 
-        if (epoch + 1) % 2 == 0:
+        if (epoch + 1) % 5 == 0:
           evaluate(test_loader, model, epoch, tb_logger, criterion_c, args)
         
         train(train_loader, model, criterion_c, optimizer, scheduler, epoch, train_dataset, use_train_batch_hack, args)
@@ -272,7 +272,7 @@ def TrainHack(train_loader, model, criterion, optimizer, scheduler, epoch, datas
         gradient = torch.ones((loss.shape[0]), dtype=torch.long)\
             .cuda(args.gpu, non_blocking=args.pin_memory)
         loss.backward(gradient=gradient)
-        loss = loss.mean()
+        loss = loss.sum()
         return loss.item()
 
     
@@ -384,8 +384,8 @@ def evaluate(test_loader, model, epoch, tb_logger, loss_fun, args):
         table.add_row([f_score, precision, recall, loss])
         tqdm.write(str(table))
 
-        log("Machine Summary Sum: " + str(debug_machine_sums), args)
-        log("GT Summary Sum: " + str(debug_gt_sums), args)
+        # log("Machine Summary Sum: " + str(debug_machine_sums), args)
+        # log("GT Summary Sum: " + str(debug_gt_sums), args)
 
         if tb_logger is not None:
             # log training data into tensorboard
