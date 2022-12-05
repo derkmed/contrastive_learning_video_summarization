@@ -146,7 +146,7 @@ def main_worker(gpu, ngpus_per_node, args):
     elif args.optimizer == "sgd":
         optimizer = torch.optim.SGD(model.parameters(), args.lrv, momentum=args.momemtum,
             weight_decay=args.weight_decay)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=300, gamma=1.0)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_step_size, gamma=0.1)
     
     checkpoint_dir = os.path.join(os.path.dirname(__file__), args.checkpoint_dir, args.log_name)
     if args.checkpoint_dir != "" and args.rank == 0:
@@ -174,6 +174,8 @@ def main_worker(gpu, ngpus_per_node, args):
         cudnn.benchmark = True
     total_batch_size = args.world_size * args.batch_size
     log("Starting training loop for rank: {}, total batch size: {}".format(args.rank, total_batch_size), args)
+    log("Training dataset has {} videos".format(len(train_dataset)), args)
+    log("Testing dataset has {} videos".format(len(test_dataset)), args)
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
@@ -206,43 +208,21 @@ def train(train_loader, model, criterion, optimizer, scheduler, epoch, dataset, 
         running_loss += batch_loss
         if args.verbose and args.rank == 0:
             d = time.time() - s
-            if args.finetune:
-                current_lr = optimizer.param_groups[1]["lr"]
-            else:
-                current_lr = optimizer.param_groups[0]["lr"]
-            log(
-                "Epoch %d, Elapsed Time: %.3f, Epoch status: %.4f, Training loss: %.4f, Learning rate: %.6f"
-                % (
-                    epoch + 1,
-                    d,
-                    args.batch_size * args.world_size * float(i_batch) / len(dataset),
-                    running_loss / args.log_freq,
-                    current_lr,
-                ),
-                args,
-            )
-            # log training data into tensorboard
-            if tb_logger is not None:
-                logs = OrderedDict()
-                logs["Train loss"] = running_loss / args.log_freq
-                logs["Learning rate"] = current_lr
-                # how many iterations we have trained
-                iter_count = epoch * len(train_loader) + i_batch
-                for key, value in logs.items():
-                    tb_logger.log_scalar(value, key, iter_count)
-                tb_logger.flush()
-
-            s = time.time()
-            running_loss = 0.0
+            current_lr = optimizer.param_groups[0]["lr"]
+            log("Epoch %d, Elapsed Time: %.3f, Epoch status: %.4f, Training loss: %.4f, Learning rate: %.6f"
+                % (epoch + 1, d, args.batch_size * args.world_size * float(i_batch) / len(dataset),
+                    running_loss, current_lr), args)
+    
+    d = time.time() - s
+    current_lr = optimizer.param_groups[0]["lr"]
+    log("Epoch %d, Elapsed Time: %.3f, Training loss: %.4f, Learning rate: %.6f"
+        % (epoch + 1, d, running_loss, current_lr), args)
 
 
 def TrainOneBatch(model, opt, scheduler, data, loss_fun, args, epoch):
     segments = data["segments"].float().cuda(args.gpu, non_blocking=args.pin_memory)
-    label_scores = (
-        data["label_scores"].cuda(args.gpu, non_blocking=args.pin_memory).view(-1)
-    )
+    label_scores = (data["label_scores"].cuda(args.gpu, non_blocking=args.pin_memory).view(-1))
 
-    # video = video / 255.0 This no longer makes sense for TCLR
     opt.zero_grad()
     with torch.set_grad_enabled(True):
         video_embd, score = model(segments)
@@ -278,7 +258,6 @@ def evaluate(test_loader, model, epoch, tb_logger, loss_fun, args):
         for i_batch, data in enumerate(test_loader):
             segments = data["segments"].float().cuda()
             label_scores = data["label_scores"].cuda().view(-1)
-             # video = video / 255.0 This no longer makes sense for TCLR
             video_embd, score = model(segments)
             if args.distributed:
                 label_scores = allgather(label_scores, args)
@@ -292,7 +271,7 @@ def evaluate(test_loader, model, epoch, tb_logger, loss_fun, args):
                 # score = nn.functional.log_softmax(score.view(-1).detach().cpu(), dim=0)
                 # score = nn.functional.normalize(score.view(-1).detach().cpu(), dim=0)
                 summary_ids = (
-                    score.detach().cpu().view(-1).topk(int(0.50 * len(label_scores)))[1]
+                    score.detach().cpu().view(-1).topk(int(args.k * len(label_scores)))[1]
                 )
                 summary = np.zeros(len(label_scores))
                 summary[summary_ids] = 1
@@ -313,7 +292,8 @@ def evaluate(test_loader, model, epoch, tb_logger, loss_fun, args):
                 # )
 
                 f_score, precision, recall = evaluate_summary(
-                    summary, label_scores.detach().cpu().numpy()
+                    summary, 
+                    (label_scores > 0.5).type(torch.uint8).detach().cpu().numpy()
                 )
                 loss = loss.mean()
                 losses.update(loss.item(), video_embd.shape[0])
@@ -357,7 +337,7 @@ def evaluate(test_loader, model, epoch, tb_logger, loss_fun, args):
     model.train()
 
 
-def save_checkpoint(state, checkpoint_dir, epoch, n_ckpt=10):
+def save_checkpoint(state, checkpoint_dir, epoch, n_ckpt=5):
     torch.save(
         state, os.path.join(checkpoint_dir, "epoch{:0>4d}.pth.tar".format(epoch))
     )
@@ -387,22 +367,6 @@ def log(output, args):
         "a",
     ) as f:
         f.write(output + "\n")
-
-
-# gcn_params = []
-# base_params = []
-# for name, param in model.named_parameters():
-#     if 'ga' in name or 'gcn' in name:
-#         gcn_params.append(param)
-#     else:
-#         base_params.append(param)
-
-# optimizer = optim.Adam([
-#     {"params": base_params, "lr": args.learning_rate_lstm},
-#     {"params": gcn_params, "lr":args.learning_rate_gcn},
-# ], weight_decay=1e-6)
-# scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=40, gamma=0.4)
-
 
 if __name__ == "__main__":
     main()
