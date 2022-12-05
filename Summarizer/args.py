@@ -23,6 +23,7 @@ def get_args(description="MILNCE"):
         help="weight decay (default: 1e-4)",
     )
     parser.add_argument("--num_thread_reader", type=int, default=4, help="")
+    parser.add_argument("--cadence", type=int, default=10, help="Runs a model checkpoint every n epochs")
     parser.add_argument("--batch_size", type=int, default=3, help="batch size")
     parser.add_argument("--batch_size_val", type=int, default=3, help="batch size eval")
     parser.add_argument("--momemtum", type=float, default=0.9, help="SGD momemtum")

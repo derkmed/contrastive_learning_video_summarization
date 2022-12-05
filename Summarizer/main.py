@@ -196,6 +196,7 @@ def main_worker(gpu, ngpus_per_node, args):
                 },
                 checkpoint_dir,
                 epoch + 1,
+                cadence=args.cadence
             )
 
 
@@ -337,11 +338,11 @@ def evaluate(test_loader, model, epoch, tb_logger, loss_fun, args):
     model.train()
 
 
-def save_checkpoint(state, checkpoint_dir, epoch, n_ckpt=5):
+def save_checkpoint(state, checkpoint_dir, epoch, n_ckpt=5, cadence=10):
     torch.save(
         state, os.path.join(checkpoint_dir, "epoch{:0>4d}.pth.tar".format(epoch))
     )
-    if epoch - n_ckpt >= 0:
+    if epoch >= n_ckpt and epoch % cadence == 0:
         oldest_ckpt = os.path.join(
             checkpoint_dir, "epoch{:0>4d}.pth.tar".format(epoch - n_ckpt)
         )
