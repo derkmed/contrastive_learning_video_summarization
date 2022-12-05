@@ -117,7 +117,7 @@ class TCLRSummarizer(nn.Module):
             # Freezes all layers except the last.
             for param in self.base_model.parameters():
                 param.requires_grad = False
-            self.base_model.fc.requires_grad = True
+        self.base_model.fc.requires_grad = True
 
         self.d_model = d_model     
         self.mlp = nn.Sequential(
@@ -148,49 +148,7 @@ class TCLRSummarizer(nn.Module):
         segment_embeddings = self.transformer_encoder(segment_embeddings)
         logits = self.fc(segment_embeddings)
         return segment_embeddings, logits
-    
-class RandomSummarizer(nn.Module):
-
-    def __init__(self, d_model: int = 128, freeze_base: bool = True, 
-        heads: int = 8, enc_layers: int = 6, dropout: float = 0.1, 
-        apply_mlp_beforehand: bool = False) -> None:
-        """
-        d_model determines the output embedding dimensionality.
-        """
-        super(RandomSummarizer, self).__init__()
-        # NOTE: model expects expects [B x C x S x H x W] = [nsegments, nchannels, nframes_per_segments, size, size]
-        self.apply_mlp_beforehand = apply_mlp_beforehand
-        self.base_model = load_tclr_backbone(d_output=d_model)
-        self.d_model = d_model     
-        self.mlp = nn.Sequential(
-            nn.Linear(d_model, d_model), 
-            nn.BatchNorm1d(d_model), 
-            nn.ReLU()
-        )
-        self.pos_enc = PositionalEncoding(self.d_model, dropout)
-        encoder_layers = nn.TransformerEncoderLayer(
-            d_model=self.d_model, nhead=heads, dropout=dropout
-        )
-        self.transformer_encoder = nn.TransformerEncoder(
-            encoder_layers, num_layers=enc_layers
-        )
-        self.fc = nn.Linear(self.d_model, 1)
-
-    def forward(self, video):
-        # [n_segs, C, S, H, W] -> [n_segs x d_output x 4 x 1 x 1] --> [n_segs x d_output]
-        segment_embeddings = []
-        for segment in video:
-            emb = self.base_model(segment)
-            if self.apply_mlp_beforehand:
-                emb = self.mlp(emb) 
-            
-            segment_embeddings.append(emb)
-        
-        segment_embeddings = torch.stack(segment_embeddings)
-        segment_embeddings = self.pos_enc(segment_embeddings)  # Add pos enc as nn.Trasnformer doesnt have it
-        segment_embeddings = self.transformer_encoder(segment_embeddings)
-        logits = self.fc(segment_embeddings)
-        return segment_embeddings, logits
+ 
 
 def print_param_size(model_state_dict):
     for param_tensor in model_state_dict:
@@ -221,12 +179,12 @@ if __name__ == '__main__':
 
     
 
-    # Raw Summarizer Individual Test
-    individual_x = torch.rand(2, 8, 3, 16, 112, 112) # 1 sample of 8 segments of 16 frames 3 x 112 x 112
-    i_emb, i_logits = summRand(individual_x)
+    # # Raw Summarizer Individual Test
+    # individual_x = torch.rand(2, 8, 3, 16, 112, 112) # 1 sample of 8 segments of 16 frames 3 x 112 x 112
+    # i_emb, i_logits = summRand(individual_x)
     
-    # Raw Summarizer Batch Test
-    batch_x = torch.rand(2, 8, 3, 16, 112, 112) # 2 batches of 8 segments of 16 frames 3 x 112 x 112
-    b_emb, b_logits = summRand(batch_x)
+    # # Raw Summarizer Batch Test
+    # batch_x = torch.rand(2, 8, 3, 16, 112, 112) # 2 batches of 8 segments of 16 frames 3 x 112 x 112
+    # b_emb, b_logits = summRand(batch_x)
 
     
