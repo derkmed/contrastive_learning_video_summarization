@@ -104,12 +104,13 @@ class PositionalEncoding(nn.Module):
 class TCLRSummarizer(nn.Module):
 
     def __init__(self, saved_model_file: str, d_model: int = 128, freeze_base: bool = True, 
-        heads: int = 8, enc_layers: int = 6, dropout: float = 0.1) -> None:
+        heads: int = 8, enc_layers: int = 6, dropout: float = 0.1,
+        apply_mlp_beforehand: bool = False) -> None:
         """
         d_model determines the output embedding dimensionality.
         """
         super(TCLRSummarizer, self).__init__()
-
+        self.apply_mlp_beforehand = apply_mlp_beforehand
         # NOTE: model expects expects [B x C x S x H x W] = [nsegments, nchannels, nframes_per_segments, size, size]
         self.base_model = load_tclr_backbone(saved_model_file, d_output=d_model)
         if freeze_base:
@@ -138,7 +139,8 @@ class TCLRSummarizer(nn.Module):
         segment_embeddings = []
         for segment in video:
             emb = self.base_model(segment)
-            emb = self.mlp(emb)
+            if self.apply_mlp_beforehand:
+                emb = self.mlp(emb) # Too many layers for an NVIDIA T4 GPU.
             segment_embeddings.append(emb)
         
         segment_embeddings = torch.stack(segment_embeddings)
@@ -150,12 +152,14 @@ class TCLRSummarizer(nn.Module):
 class RandomSummarizer(nn.Module):
 
     def __init__(self, d_model: int = 128, freeze_base: bool = True, 
-        heads: int = 8, enc_layers: int = 6, dropout: float = 0.1) -> None:
+        heads: int = 8, enc_layers: int = 6, dropout: float = 0.1, 
+        apply_mlp_beforehand: bool = False) -> None:
         """
         d_model determines the output embedding dimensionality.
         """
         super(RandomSummarizer, self).__init__()
         # NOTE: model expects expects [B x C x S x H x W] = [nsegments, nchannels, nframes_per_segments, size, size]
+        self.apply_mlp_beforehand = apply_mlp_beforehand
         self.base_model = load_tclr_backbone(d_output=d_model)
         self.d_model = d_model     
         self.mlp = nn.Sequential(
@@ -177,7 +181,9 @@ class RandomSummarizer(nn.Module):
         segment_embeddings = []
         for segment in video:
             emb = self.base_model(segment)
-            emb = self.mlp(emb)
+            if self.apply_mlp_beforehand:
+                emb = self.mlp(emb) 
+            
             segment_embeddings.append(emb)
         
         segment_embeddings = torch.stack(segment_embeddings)
