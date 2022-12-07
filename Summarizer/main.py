@@ -76,7 +76,8 @@ def main_worker(gpu, ngpus_per_node, args):
 
 
     # WARNING (derekahmed): You most certainly will have to freeze the base. This network is way too large for our standards.
-    model = TCLRSummarizer(args.pretrain_tclr_path, d_model=args.tclr_dim, freeze_base=args.freeze_base)
+    model = TCLRSummarizer(args.pretrain_tclr_path, d_model=args.tclr_dim, freeze_base=args.freeze_base,
+        heads=args.enc_head, enc_layers=args.enc_layers, dropout=args.dropout)
     model.cuda()
     print(f"Loaded model from {args.pretrain_tclr_path}")
     # TODO (derekahmed)
@@ -152,10 +153,24 @@ def main_worker(gpu, ngpus_per_node, args):
         return
 
     # Configure optimizer.
+    base_params = []
+    importance_params = []
+    for name, param in model.named_parameters():
+        if "base" in name and "fc" not in name:
+            base_params.append(param)
+        else:
+            importance_params.append(param)
     if args.optimizer == "adam":
-        optimizer = torch.optim.Adam(model.parameters(), args.lrv, weight_decay=args.weight_decay)
+        # optimizer = torch.optim.Adam(model.parameters(), args.lrv, weight_decay=args.weight_decay)
+        optimizer = torch.optim.Adam([
+                {"params": base_params, "lr": args.lr_base},
+                {"params": importance_params, "lr": args.lr_importance},
+            ], args.lrv, weight_decay=args.weight_decay)
     elif args.optimizer == "sgd":
-        optimizer = torch.optim.SGD(model.parameters(), args.lrv, momentum=args.momemtum,
+        optimizer = torch.optim.SGD([
+                {"params": base_params, "lr": args.lr_base},
+                {"params": importance_params, "lr": args.lr_importance},
+            ], args.lrv, momentum=args.momemtum,
             weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_step_size, gamma=0.1)
     

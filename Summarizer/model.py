@@ -103,7 +103,7 @@ class PositionalEncoding(nn.Module):
 
 class TCLRSummarizer(nn.Module):
 
-    def __init__(self, saved_model_file: str, d_model: int = 128, freeze_base: bool = True, 
+    def __init__(self, saved_model_file: str, d_model: int = 512, freeze_base: bool = True, 
         heads: int = 8, enc_layers: int = 6, dropout: float = 0.1,
         apply_mlp_beforehand: bool = False) -> None:
         """
