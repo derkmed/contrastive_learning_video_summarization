@@ -16,7 +16,8 @@ def get_args(description="MILNCE"):
         help="filepath for the training dataset",
     )
     parser.add_argument("--testing_dataset", type=str, 
-        default="/home/derekhmd/cs6998_05/data/splits/20p_tvsum.txt",
+        default="/home/derekhmd/cs6998_05/data/splits/augmented_80ptvsum.txt",
+        # default="/home/derekhmd/cs6998_05/data/splits/20p_tvsum.txt",
         help="filepath for the testing dataset",
     )
     parser.add_argument("--optimizer", type=str, default="adam", help="opt algorithm")
@@ -55,7 +56,7 @@ def get_args(description="MILNCE"):
     parser.add_argument(
         "--enc_layers",
         "-enc_layers",
-        default=24,
+        default=4,
         type=int,
         help="number of layers in transformer encoder",
     )
@@ -79,13 +80,20 @@ def get_args(description="MILNCE"):
         help="manual epoch number (useful on restarts)",
     )
     parser.add_argument(
-        "--lrv",
+        "--lrb",
         "--learning-rate",
-        default=0.001,
+        default=0.0001,
         type=float,
-        metavar="LRV",
+        help="base learning rate",
+        dest="lr_base",
+    )
+    parser.add_argument(
+        "--lri",
+        "--learning-rate",
+        default=0.0003,
+        type=float,
         help="initial learning rate",
-        dest="lrv",
+        dest="lr_importance",
     )
     parser.add_argument("--momentum", default=0.9, type=float, metavar="M", help="momentum")
     parser.add_argument(
