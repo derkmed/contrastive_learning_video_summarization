@@ -1,0 +1,4 @@
+/home/derekhmd/data/videos/tvsum_downsample8fps/eQu1rNs0an0.mp4 0
+/home/derekhmd/data/videos/tvsum_downsample8fps/XkqCExn6_Us.mp4 1
+/home/derekhmd/data/videos/tvsum_downsample8fps/LRw_obCPUt0.mp4 2
+/home/derekhmd/data/videos/summe_videos/Bearpark_climbing.mp4 3

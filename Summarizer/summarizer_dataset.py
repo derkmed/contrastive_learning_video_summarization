@@ -54,9 +54,10 @@ class Summarizer_Dataset(Dataset):
     def __init__(self, 
         data_list_file: str = "../data/splits/summe_all.txt",
         gt_root: str = "../data/gt", 
-        req_segment_count: int = -1, 
+        req_segment_count: int = 40, 
         num_frames_per_segment: int = 16, 
         size: int = 112,
+        is_randomized_start: bool = True,
         is_video_only: bool = False,
         debug_mode: bool = False
     ):
@@ -84,6 +85,7 @@ class Summarizer_Dataset(Dataset):
         assert len(data[0].split(' ')) == 2, assert_msg(data_list_file)        
         self.videos = {int(row.split(' ')[1]): row.split(' ')[0] for row in data}
         self.is_video_only = is_video_only
+        self.is_randomized_start = is_randomized_start
         self.debug_mode = debug_mode
 
     
@@ -191,7 +193,7 @@ class Summarizer_Dataset(Dataset):
         else:
             return self._tvsum_aggregate_labels(labels, s_dimsize)
 
-    def _get_segment_label_scores(self, vid_name: str, s_dimsize: int, npad_frames: int = -1) -> torch.FloatTensor:
+    def _get_segment_label_scores(self, vid_name: str, orig_labels: torch.Tensor, s_dimsize: int, npad_frames: int = -1) -> torch.FloatTensor:
         '''
         Obtain the label scores and pad and aggregate as necessary such that each segment can have
         a corresponding label_score.
@@ -200,15 +202,7 @@ class Summarizer_Dataset(Dataset):
         :param s_dimsize: the number of segments
         :param npad_frames: the number of frames to pad prior to aggregation. Ignore padding if -1.
         :return: tensor of label scores
-        '''
-        orig_labels = None
-        # TODO(derekahmed) This code is really bad and assumes that if the dataset is not SumMe, it's TVSum.
-        # It most definitely should be changed.
-        if vid_name in SUMME_VIDEO_NAMES:
-            orig_labels = self._get_summe_labels(vid_name)
-        else:
-            orig_labels = self._get_tvsum_labels(vid_name)
-            
+        '''            
         orig_labels = torch.FloatTensor(orig_labels)
         label_scores = orig_labels
         if npad_frames != -1:
@@ -251,8 +245,8 @@ class Summarizer_Dataset(Dataset):
         if self.debug_mode:
             print(f"[AggregateLabels] aggregating {len(orig_labels)} into {nsegments} segments")
 
-        if not orig_labels.is_floating_point():
-            raise ValueError("Summe aggregation assumes that labels are of Integer Type. But inputs are of floating point.")
+        # if orig_labels.is_floating_point():
+            # raise ValueError("Summe aggregation assumes that labels are of Integer Type. But inputs are of floating point.")
         orig_nframes = len(orig_labels)
         orig_frames_per_segment = int(orig_nframes / nsegments)
         labels = torch.zeros(nsegments)
@@ -355,32 +349,52 @@ class Summarizer_Dataset(Dataset):
             
             # Obtain the video segments.
             segments = self._get_video_segments(video, self.num_frames_per_segment)
-            s_dimsize, f_dimsize, _, _, _ = segments.shape
-            assert s_dimsize * f_dimsize >= nframes, f"Segments should contain more or equivalent # frames as {nframes}."
+            nsegments, nsgement_frames, _, _, _ = segments.shape
+            assert nsegments * nsgement_frames >= nframes, f"Segments should contain more or equivalent # frames as {nframes}."
+            # TODO (derekahmed): ADD RANDOM OFFSET HERE
+            randomized_start_segment = -1
+            nrandomized_segments = -1
+            if self.is_randomized_start:
+                start_window_end = nsegments - self.req_segment_count
+                start_window_end = start_window_end if start_window_end >= 0 else nsegments # if there are not enough frames, just default to the end
+                randomized_start_segment = random.randint(0, start_window_end)
+                if self.debug_mode:
+                    print(f"Starting video segment is {randomized_start_segment}.")
+                segments = segments[randomized_start_segment:,]
+                nrandomized_segments, _, _, _, _ = segments.shape
+            
 
             # Obtain the ground truth data.
-            npad_frames = s_dimsize * f_dimsize - nframes
-            orig_labels = self._get_orig_labels(vid_name)
-            labels = self._get_segment_labels(vid_name, orig_labels, s_dimsize, npad_frames)
-            label_scores = self._get_segment_label_scores(vid_name, s_dimsize, npad_frames)
+            npad_frames = nsegments * nsgement_frames - nframes
+            orig_labels = self._get_orig_labels(vid_name)            
+            labels = self._get_segment_labels(vid_name, orig_labels, nsegments, npad_frames)
+            label_scores = self._get_segment_label_scores(vid_name, orig_labels, nsegments, npad_frames)
+            # TODO (derekahmed): ADD RANDOM OFFSET HERE
+            if self.is_randomized_start:
+                if self.debug_mode:
+                    print(f"Starting segment label & score is {randomized_start_segment}.")
+                labels = labels[randomized_start_segment:]
+                label_scores = label_scores[randomized_start_segment:]
+                nsegments = nrandomized_segments
             assert len(labels) == len(label_scores),\
                 f"Incongruency detected between {len(labels)} labels and {len(label_scores)} scores."
-            assert len(label_scores) == s_dimsize,\
-                f"Incongruency detected between {len(label_scores)} scores and {s_dimsize} segments."
+            assert len(label_scores) == nsegments,\
+                f"Incongruency detected between {len(label_scores)} scores and {nsegments} segments."
             
+
             # Slice or pad to ensure self.req_segment_count number of segments.
             if self.req_segment_count != -1:
-                if self.req_segment_count < s_dimsize:
+                if self.req_segment_count < nsegments:
                     if self.debug_mode:
-                        print(f"Slicing segments {s_dimsize}->{self.req_segment_count}.")
+                        print(f"Slicing segments {nsegments}->{self.req_segment_count}.")
                         print(f"Slicing scores {len(label_scores)}->{self.req_segment_count}.")
                     segments = segments[:self.req_segment_count]
                     labels = labels[:self.req_segment_count]
                     label_scores = label_scores[:self.req_segment_count]
 
-                elif self.req_segment_count > s_dimsize:
+                elif self.req_segment_count > nsegments:
                     if self.debug_mode:
-                        print(f"Padding segments {s_dimsize}->{self.req_segment_count}.")
+                        print(f"Padding segments {nsegments}->{self.req_segment_count}.")
                         print(f"Padding scores {len(label_scores)}->{self.req_segment_count}.")
                     # We need to pad segments to the length specified by the Dataset.
                     segments = self._pad_segments(segments, self.req_segment_count)
@@ -391,21 +405,21 @@ class Summarizer_Dataset(Dataset):
             segments = segments.permute(0, 4, 1, 2, 3)
             if self.is_video_only:
                 return {
-                    "vid_name": vid_name,
+                    # "vid_name": vid_name,
                     "segments": segments,
-                    "fps": fps,
+                    # "fps": fps,
                     "n_frames": nframes,
-                    "n_frames_per_segment": self.num_frames_per_segment,
+                    # "n_frames_per_segment": self.num_frames_per_segment,
                     }
             else:
                 return {
-                    "vid_name": vid_name,
-                    "fps": fps,
+                    # "vid_name": vid_name,
+                    # "fps": fps,
                     "segments": segments,
                     "labels": labels,
                     "label_scores": label_scores,
                     "n_frames": nframes,
-                    "n_frames_per_segment": self.num_frames_per_segment,
+                    # "n_frames_per_segment": self.num_frames_per_segment,
                     }
         
         except Exception as e:
@@ -528,42 +542,42 @@ if __name__ == '__main__':
 
 
     # # ###################################################################################################
-    print("\n################################# Iteration Test #################################")
-    dataset = Summarizer_Dataset(data_list_file = "../data/splits/8fps_augmented_80p_tvsum.txt",
-        req_segment_count=100)
-    train_dataloader = DataLoader(dataset, batch_size=6)
-    last_og_labels, last_og_segment_time = None, None
-    for i, data in enumerate(train_dataloader):
-        for j in range(data['segments'].shape[0]):
-            print(f"Batch={i}, item={j}")
-            segments = data['segments'][j]
-            name = data['vid_name'][j]
-            fps = data['fps'][j].item()
-            nframes = data['n_frames'][j]
-            labels = data['labels'][j]
-            scores = data['label_scores'][j]
-            nframes_per_segment = data['n_frames_per_segment'][j].item()
+    # print("\n################################# Iteration Test #################################")
+    # dataset = Summarizer_Dataset(data_list_file = "../data/splits/8fps_augmented_80p_tvsum.txt",
+    #     req_segment_count=100)
+    # train_dataloader = DataLoader(dataset, batch_size=6)
+    # last_og_labels, last_og_segment_time = None, None
+    # for i, data in enumerate(train_dataloader):
+    #     for j in range(data['segments'].shape[0]):
+    #         print(f"Batch={i}, item={j}")
+    #         segments = data['segments'][j]
+    #         name = data['vid_name'][j]
+    #         fps = data['fps'][j].item()
+    #         nframes = data['n_frames'][j]
+    #         labels = data['labels'][j]
+    #         scores = data['label_scores'][j]
+    #         nframes_per_segment = data['n_frames_per_segment'][j].item()
             
-            nsegments = segments.shape[0]
-            og_labels = dataset._get_orig_labels(name)
-            og_nframes = og_labels.shape[0]
-            segment_time = nframes_per_segment / fps
-            last_og_segment_time = segment_time
-            print(f"One segment spans {segment_time} seconds with a total video time of {nsegments * segment_time}.")
-            print(f"OG nframes_per_segment = {og_nframes / nsegments}")
-            print(f"{name} at {fps} FPS with {og_nframes} frames --> {nframes} frames --> {nsegments} segments @ {nframes_per_segment} frames per segment.")
-            print(f"{torch.squeeze(scores).shape[0]} importance scores obtained.")        
-            print(f"Sum disparity between labels ({labels.sum()}) and scores ({scores.sum()}) observed.")
-            if len((labels == 1).nonzero()) != 0:
-                start_marker = (labels == 1).nonzero()[0].item() * nframes_per_segment / fps
-                print(f"First important segment is at {start_marker} s.")
-                print(labels)
-                print(scores)
-                last_og_labels = og_labels
+    #         nsegments = segments.shape[0]
+    #         og_labels = dataset._get_orig_labels(name)
+    #         og_nframes = og_labels.shape[0]
+    #         segment_time = nframes_per_segment / fps
+    #         last_og_segment_time = segment_time
+    #         print(f"One segment spans {segment_time} seconds with a total video time of {nsegments * segment_time}.")
+    #         print(f"OG nframes_per_segment = {og_nframes / nsegments}")
+    #         print(f"{name} at {fps} FPS with {og_nframes} frames --> {nframes} frames --> {nsegments} segments @ {nframes_per_segment} frames per segment.")
+    #         print(f"{torch.squeeze(scores).shape[0]} importance scores obtained.")        
+    #         print(f"Sum disparity between labels ({labels.sum()}) and scores ({scores.sum()}) observed.")
+    #         if len((labels == 1).nonzero()) != 0:
+    #             start_marker = (labels == 1).nonzero()[0].item() * nframes_per_segment / fps
+    #             print(f"First important segment is at {start_marker} s.")
+    #             print(labels)
+    #             print(scores)
+    #             last_og_labels = og_labels
                 
-                print(og_labels.shape)
-            break
-        break
+    #             print(og_labels.shape)
+    #         break
+    #     break
             
     # This is just a manual check of the first n segment scores / labels.
     # last_og_fps = 30
@@ -573,13 +587,28 @@ if __name__ == '__main__':
     # for i in range(50):
     #     print(f"{last_og_segment_time * i}: {last_og_labels[i * last_og_segment_size : (i + 1) * last_og_segment_size].sum()}")
 
-    
+
+    # # ###################################################################################################
+    # print("\n################################# Aggregation Test #################################")
     # dataset = tvsum_dataset
     # assert torch.all(dataset._tvsum_aggregate_labels(torch.Tensor([0.2, 0, 0.3, 0, 0, 1, 1, 1, 1]), 3) == torch.Tensor([0, 0, 1])).item(), "_tvsum_aggregate_labels(...) is wrong"
 
     # dataset = tvsum_dataset
     # assert torch.all(dataset._summe_aggregate_labels(torch.Tensor([0.2, 0, 0.3, 0, 0, 1, 1, 1, 1]), 3) == torch.Tensor([1, 0, 1])).item(), "_summe_aggregate_labels(...) is wrong"
 
-    
+    # # ###################################################################################################
+    # print("\n################################# Randomized Start Test #################################")
+    random_dataset = Summarizer_Dataset(
+        data_list_file = "../data/splits/all_summe.txt",
+        req_segment_count = 40,
+        is_randomized_start=True,
+        debug_mode = True)
+    train_dataloader = DataLoader(random_dataset, batch_size=6)
+    last_og_labels, last_og_segment_time = None, None
+    for i, data in enumerate(train_dataloader):
+        for j in range(data['segments'].shape[0]):
+            break
+        break
+
 
 
