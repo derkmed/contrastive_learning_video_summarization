@@ -1,6 +1,6 @@
 num_frames = 16
 batch_size = 8
-learning_rate = 1e-3 #base learning rate
+learning_rate = 3e-4 #base learning rate
 num_epochs = 1000 # training code will end after this num_of_epochs
 data_percentage = 1.0 #just for debugging purpose, default = 1
 temperature = 0.1 
@@ -17,7 +17,7 @@ reso_w = 112
 
 warmup = 5 
 warmup_array = [1/100,1/20,1/10,1/2,1]
-scheduler_patience = 9
+scheduler_patience = 16
 
 
 # Configure this value to determine how many times to randomly
