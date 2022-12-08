@@ -57,7 +57,7 @@ class Summarizer_Dataset(Dataset):
         req_segment_count: int = 40, 
         num_frames_per_segment: int = 16, 
         size: int = 112,
-        is_randomized_start: bool = True,
+        is_randomized_start: bool = False,
         is_video_only: bool = False,
         debug_mode: bool = False
     ):
@@ -387,6 +387,7 @@ class Summarizer_Dataset(Dataset):
                 if self.req_segment_count < nsegments:
                     if self.debug_mode:
                         print(f"Slicing segments {nsegments}->{self.req_segment_count}.")
+                        print(f"Slicing scores {len(labels)}->{self.req_segment_count}.")
                         print(f"Slicing scores {len(label_scores)}->{self.req_segment_count}.")
                     segments = segments[:self.req_segment_count]
                     labels = labels[:self.req_segment_count]
@@ -408,7 +409,7 @@ class Summarizer_Dataset(Dataset):
                     # "vid_name": vid_name,
                     "segments": segments,
                     # "fps": fps,
-                    "n_frames": nframes,
+                    # "n_frames": nframes,
                     # "n_frames_per_segment": self.num_frames_per_segment,
                     }
             else:
@@ -418,7 +419,7 @@ class Summarizer_Dataset(Dataset):
                     "segments": segments,
                     "labels": labels,
                     "label_scores": label_scores,
-                    "n_frames": nframes,
+                    # "n_frames": nframes,
                     # "n_frames_per_segment": self.num_frames_per_segment,
                     }
         
@@ -599,7 +600,7 @@ if __name__ == '__main__':
     # # ###################################################################################################
     # print("\n################################# Randomized Start Test #################################")
     random_dataset = Summarizer_Dataset(
-        data_list_file = "../data/splits/all_summe.txt",
+        data_list_file = "../data/splits/8fps_augmented_80p_tvsum.txt",
         req_segment_count = 40,
         is_randomized_start=True,
         debug_mode = True)
@@ -607,8 +608,7 @@ if __name__ == '__main__':
     last_og_labels, last_og_segment_time = None, None
     for i, data in enumerate(train_dataloader):
         for j in range(data['segments'].shape[0]):
-            break
-        break
+            print("Next element")
 
 
 

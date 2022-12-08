@@ -77,7 +77,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     # WARNING (derekahmed): You most certainly will have to freeze the base. This network is way too large for our standards.
     model = TCLRSummarizer(args.pretrain_tclr_path, d_model=args.tclr_dim, freeze_base=args.freeze_base,
-        heads=args.enc_head, enc_layers=args.enc_layers, dropout=args.dropout)
+        heads=args.enc_heads, enc_layers=args.enc_layers, dropout=args.dropout)
     model.cuda()
     print(f"Loaded model from {args.pretrain_tclr_path}")
     # TODO (derekahmed)
@@ -105,7 +105,9 @@ def main_worker(gpu, ngpus_per_node, args):
     train_dataset = Summarizer_Dataset(
         data_list_file = args.training_dataset,
         req_segment_count=args.req_segment_count,
-        num_frames_per_segment=args.num_frames_per_segment)
+        is_randomized_start=args.randomized_start,
+        num_frames_per_segment=args.num_frames_per_segment,
+        debug_mode=args.debug_dataset_mode)
     test_dataset = Summarizer_Dataset(
         data_list_file = args.testing_dataset, 
         req_segment_count=args.req_segment_count,
@@ -136,9 +138,9 @@ def main_worker(gpu, ngpus_per_node, args):
     )
 
     # start a logger
-    args.log_name = "{}_model_bs_{}_lr_{}_nsegments_{}_nfps_{}_nheads_{}_nenc_{}_dropout_{}".format(
-        args.log_name, args.batch_size, args.lrv, args.req_segment_count, args.num_frames_per_segment,
-        args.heads, args.enc_layers, args.dropout)
+    args.log_name = "{}_model_bs_{}_lrbase_{}_lrimportance_{}_nsegments_{}_nfps_{}_nheads_{}_nenc_{}_dropout_{}".format(
+        args.log_name, args.batch_size, args.lr_base, args.lr_importance, args.req_segment_count, args.num_frames_per_segment,
+        args.enc_heads, args.enc_layers, args.dropout)
     tb_logdir = os.path.join(args.log_root, args.log_name)
     tb_logger = Logger(tb_logdir)
     if args.rank == 0:
@@ -153,25 +155,26 @@ def main_worker(gpu, ngpus_per_node, args):
         return
 
     # Configure optimizer.
-    base_params = []
-    importance_params = []
-    for name, param in model.named_parameters():
-        if "base" in name and "fc" not in name:
-            base_params.append(param)
-        else:
-            importance_params.append(param)
+    # base_params = []
+    # importance_params = []
+    # for name, param in model.named_parameters():
+    #     if "layer4" in name:
+    #         base_params.append(param)
+    #     elif "base_model.fc" in name or "base" not in name:
+    #         importance_params.append(param)
     if args.optimizer == "adam":
-        # optimizer = torch.optim.Adam(model.parameters(), args.lrv, weight_decay=args.weight_decay)
-        optimizer = torch.optim.Adam([
-                {"params": base_params, "lr": args.lr_base},
-                {"params": importance_params, "lr": args.lr_importance},
-            ], args.lrv, weight_decay=args.weight_decay)
+        optimizer = torch.optim.Adam(model.parameters(), args.lr_importance, weight_decay=args.weight_decay)
+        # optimizer = torch.optim.Adam([
+                # {"params": base_params, "lr": args.lr_base},
+                # {"params": importance_params, "lr": args.lr_importance},
+            # ], weight_decay=args.weight_decay)
     elif args.optimizer == "sgd":
-        optimizer = torch.optim.SGD([
-                {"params": base_params, "lr": args.lr_base},
-                {"params": importance_params, "lr": args.lr_importance},
-            ], args.lrv, momentum=args.momemtum,
-            weight_decay=args.weight_decay)
+        optimizer = torch.optim.SGD(model.parameters(), momentum=args.momemtum, weight_decay=args.weight_decay)
+        # optimizer = torch.optim.SGD([
+        #         {"params": base_params, "lr": args.lr_base},
+        #         {"params": importance_params, "lr": args.lr_importance},
+        #     ], momentum=args.momemtum,
+        #     weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_step_size, gamma=0.1)
     
     checkpoint_dir = os.path.join(os.path.dirname(__file__), args.checkpoint_dir, args.log_name)
@@ -205,7 +208,7 @@ def main_worker(gpu, ngpus_per_node, args):
         if args.distributed:
             train_sampler.set_epoch(epoch)
 
-        if (epoch + 1) % 5 == 0:
+        if (epoch + 1) % 3 == 0:
           evaluate(test_loader, model, epoch, tb_logger, criterion_c, args)
         
         train(train_loader, model, criterion_c, optimizer, scheduler, epoch, train_dataset, use_train_batch_hack, args)
@@ -303,8 +306,6 @@ def TrainHack(train_loader, model, criterion, optimizer, scheduler, epoch, datas
         if (i_batch + 1) % batch_aggregation_cadence == 0 or i_batch == len(train_loader) - 1:
             print(f"Aggregating {n_samples} samples on batch={i_batch + 1}.")
             losses.append(batch_loss)
-            batch_loss = 0
-            n_samples = 0
             optimizer.step()
             scheduler.step()
             if args.verbose and args.rank == 0:
@@ -312,7 +313,9 @@ def TrainHack(train_loader, model, criterion, optimizer, scheduler, epoch, datas
                 current_lr = optimizer.param_groups[0]["lr"]
                 log("Epoch %d, Elapsed Time: %.3f, Epoch status: %.4f, Batch loss: %.6f, Learning rate: %.6f"
                     % (epoch + 1, d, args.batch_size * args.world_size * float(i_batch) / len(dataset),
-                        batch_loss, current_lr), args)
+                        batch_loss / n_samples, current_lr), args)
+            batch_loss = 0
+            n_samples = 0
     
     if args.rank == 0:
         d = time.time() - s
