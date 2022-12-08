@@ -11,13 +11,16 @@ def get_args(description="MILNCE"):
     )
     parser.add_argument("--training_dataset", type=str, 
         # default="/home/derekhmd/cs6998_05/data/splits/2fps_augmented_80p_tvsum.txt",
-        default="/home/derekhmd/cs6998_05/data/splits/augmented_80ptvsum.txt",
+        # default="/home/derekhmd/cs6998_05/data/splits/augmented_80ptvsum.txt"
+        default="/home/derekhmd/cs6998_05/data/splits/n2_8fps.txt",
+        # default="/home/derekhmd/cs6998_05/data/splits/debug.txt",
         # default="/home/derekhmd/cs6998_05/data/splits/2fps_20p_tvsum.txt",
         help="filepath for the training dataset",
     )
     parser.add_argument("--testing_dataset", type=str, 
-        default="/home/derekhmd/cs6998_05/data/splits/augmented_80ptvsum.txt",
-        # default="/home/derekhmd/cs6998_05/data/splits/20p_tvsum.txt",
+        # default="/home/derekhmd/cs6998_05/data/splits/augmented_80ptvsum.txt",
+        # default="/home/derekhmd/cs6998_05/data/splits/debug.txt",
+        default="/home/derekhmd/cs6998_05/data/splits/20p_tvsum.txt",
         help="filepath for the testing dataset",
     )
     parser.add_argument("--optimizer", type=str, default="adam", help="opt algorithm")
@@ -29,10 +32,12 @@ def get_args(description="MILNCE"):
     )
     parser.add_argument("--num_thread_reader", type=int, default=4, help="")
     parser.add_argument("--checkpoint_cadence", type=int, default=10, help="Runs a model checkpoint every n epochs")
-    parser.add_argument("--batch_size", type=int, default=16, help="batch size")
+    parser.add_argument("--batch_size", type=int, default=16, help="batch size") # MAKE SURE THE DATASET IS DIVISIBLE BY THIS!
     parser.add_argument("--batch_size_val", type=int, default=10, help="batch size eval")
     parser.add_argument("--momemtum", type=float, default=0.9, help="SGD momemtum")
     parser.add_argument("--lr_step_size", type=int, default=300, help="Learning Rate Scheduler step size")
+    parser.add_argument("--randomized_start", dest="randomized_start", type=bool, default=False, help="whether to always load videos at the starting segment")
+    parser.add_argument("--debug_dataset_mode", dest="debug_dataset_mode", type=bool, default=False, help="dataset debugging")
     parser.add_argument("--freeze_base", dest="freeze_base", action="store_true", help="whether to freeze the TCLR backbone layer")
     parser.add_argument("--tclr_dim", type=int, default=256, help="The TCLR model dimensionality")
     parser.add_argument("--k", type=float, default=0.45, help="Top k percent of segments")
@@ -40,7 +45,7 @@ def get_args(description="MILNCE"):
     parser.add_argument(
         "--req_segment_count",
         type=int,
-        default=100,
+        default=56,
         help="required number of segments",
     )
     parser.add_argument(
@@ -49,10 +54,7 @@ def get_args(description="MILNCE"):
         default=16,
         help="number of frames in each segment",
     )
-    parser.add_argument(
-        "--heads", "-heads", default=8, type=int, help="number of transformer heads"
-    )
-
+    parser.add_argument("--enc_heads", "-enc_heads", default=4, type=int, help="number of transformer heads")
     parser.add_argument(
         "--enc_layers",
         "-enc_layers",
@@ -67,11 +69,11 @@ def get_args(description="MILNCE"):
     parser.add_argument(
         "--pretrain_tclr_path",
         type=str,
-        default="/home/derekhmd/best_models/d-augmented_tvsum_model_best_e283_loss_21.467.pth",
+        default="/home/derekhmd/best_models/model_best_e269_loss_16.523.pth",
         help="",
     )
     parser.add_argument("--cudnn_benchmark", type=int, default=0, help="")
-    parser.add_argument("--epochs", default=8, type=int, metavar="N", help="number of total epochs to run")
+    parser.add_argument("--epochs", default=100, type=int, metavar="N", help="number of total epochs to run")
     parser.add_argument(
         "--start-epoch",
         default=0,
@@ -81,7 +83,7 @@ def get_args(description="MILNCE"):
     )
     parser.add_argument(
         "--lrb",
-        "--learning-rate",
+        "--learning-rate-base",
         default=0.0001,
         type=float,
         help="base learning rate",
@@ -89,8 +91,8 @@ def get_args(description="MILNCE"):
     )
     parser.add_argument(
         "--lri",
-        "--learning-rate",
-        default=0.0003,
+        "--learning-rate-importance",
+        default=0.0001,
         type=float,
         help="initial learning rate",
         dest="lr_importance",
