@@ -104,13 +104,11 @@ class PositionalEncoding(nn.Module):
 class TCLRSummarizer(nn.Module):
 
     def __init__(self, saved_model_file: str, d_model: int = 512, freeze_base: bool = True, 
-        heads: int = 8, enc_layers: int = 6, dropout: float = 0.1,
-        apply_mlp_beforehand: bool = False) -> None:
+        heads: int = 4, enc_layers: int = 4, dropout: float = 0.1) -> None:
         """
         d_model determines the output embedding dimensionality.
         """
         super(TCLRSummarizer, self).__init__()
-        self.apply_mlp_beforehand = apply_mlp_beforehand
         # NOTE: model expects expects [B x C x S x H x W] = [nsegments, nchannels, nframes_per_segments, size, size]
         self.base_model = load_tclr_backbone(saved_model_file, d_output=d_model)
         if freeze_base:
@@ -120,12 +118,6 @@ class TCLRSummarizer(nn.Module):
         self.base_model.fc.requires_grad = True
 
         self.d_model = d_model     
-        if self.apply_mlp_beforehand:
-            self.mlp = nn.Sequential(
-                nn.Linear(d_model, d_model), 
-                nn.BatchNorm1d(d_model), 
-                nn.ReLU()
-            )
         self.pos_enc = PositionalEncoding(self.d_model, dropout)
         encoder_layers = nn.TransformerEncoderLayer(
             d_model=self.d_model, nhead=heads, dropout=dropout
@@ -140,8 +132,6 @@ class TCLRSummarizer(nn.Module):
         segment_embeddings = []
         for segment in video:
             emb = self.base_model(segment)
-            if self.apply_mlp_beforehand:
-                emb = self.mlp(emb) # Too many layers for an NVIDIA T4 GPU.
             segment_embeddings.append(emb)
         
         segment_embeddings = torch.stack(segment_embeddings)
@@ -159,7 +149,7 @@ def print_param_size(model_state_dict):
 if __name__ == '__main__':
     # Test with `python -i -m Summarizer.model`.
 
-    SAVED_MODEL_FILE = "/home/derekhmd/atv_summe_20221127_model_temp.pth"
+    SAVED_MODEL_FILE = "/home/derekhmd/best_models/atv_summe_20221127_model_temp.pth"
 
     print("Loading TCLR Backbone")
     tclr = load_tclr_backbone(SAVED_MODEL_FILE)
