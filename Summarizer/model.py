@@ -140,6 +140,7 @@ class TCLRSummarizer(nn.Module):
         logits = self.fc(segment_embeddings)
         return segment_embeddings, logits
  
+
 def load_summarizer(saved_model_file: str = None, d_model: int = 512, heads: int = 8, enc_layers: int = 6):
     model = TCLRSummarizer(d_model=d_model, heads=heads, enc_layers=enc_layers)
 
@@ -154,6 +155,7 @@ def load_summarizer(saved_model_file: str = None, d_model: int = 512, heads: int
         print(f'model {saved_model_file} loaded successsfully!')
 
     return model
+
 
 
 def print_param_size(model_state_dict):
