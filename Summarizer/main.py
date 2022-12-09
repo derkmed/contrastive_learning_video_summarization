@@ -307,7 +307,6 @@ def TrainHack(train_loader, model, criterion, optimizer, scheduler, epoch, datas
             print(f"Aggregating {n_samples} samples on batch={i_batch + 1}.")
             losses.append(batch_loss)
             optimizer.step()
-            scheduler.step()
             if args.verbose and args.rank == 0:
                 d = time.time() - s
                 current_lr = optimizer.param_groups[0]["lr"]
@@ -322,6 +321,8 @@ def TrainHack(train_loader, model, criterion, optimizer, scheduler, epoch, datas
         current_lr = optimizer.param_groups[0]["lr"]
         log("Epoch %d, Elapsed Time: %.3f, Training loss: %.6f, Learning rate: %.6f"
             % (epoch + 1, d, np.mean(losses), current_lr), args)
+    
+    scheduler.step()
 
 
 def evaluate(test_loader, model, epoch, tb_logger, loss_fun, args):
@@ -366,10 +367,17 @@ def evaluate(test_loader, model, epoch, tb_logger, loss_fun, args):
                 summary[summary_ids] = 1
                 # NOTE: Given the nature of this algorithm, summary will be an array
                 # of repeated values based on args.k!
+                log("Evaluating labels", args)
                 f_score, precision, recall, debugging_info = evaluate_summary(
                     summary, 
                     labels.detach().cpu().numpy()
                     # label_scores.detach().cpu().numpy()
+                )
+                log("Evaluating label scores", args)
+                f_score, precision, recall, debugging_info = evaluate_summary(
+                    summary, 
+                    # labels.detach().cpu().numpy()
+                    label_scores.detach().cpu().numpy()
                 )
                 overlap_duration, machine_sum, gt_sum = debugging_info
                 debug_machine_sums.append(machine_sum)

@@ -35,12 +35,12 @@ def get_args(description="MILNCE"):
     parser.add_argument("--batch_size", type=int, default=16, help="batch size") # MAKE SURE THE DATASET IS DIVISIBLE BY THIS!
     parser.add_argument("--batch_size_val", type=int, default=10, help="batch size eval")
     parser.add_argument("--momemtum", type=float, default=0.9, help="SGD momemtum")
-    parser.add_argument("--lr_step_size", type=int, default=300, help="Learning Rate Scheduler step size")
+    parser.add_argument("--lr_step_size", type=int, default=100, help="Learning Rate Scheduler step size")
     parser.add_argument("--randomized_start", dest="randomized_start", type=bool, default=False, help="whether to always load videos at the starting segment")
     parser.add_argument("--debug_dataset_mode", dest="debug_dataset_mode", type=bool, default=False, help="dataset debugging")
     parser.add_argument("--freeze_base", dest="freeze_base", action="store_true", help="whether to freeze the TCLR backbone layer")
-    parser.add_argument("--tclr_dim", type=int, default=256, help="The TCLR model dimensionality")
-    parser.add_argument("--k", type=float, default=0.45, help="Top k percent of segments")
+    parser.add_argument("--tclr_dim", type=int, default=512, help="The TCLR model dimensionality")
+    parser.add_argument("--k", type=float, default=0.55, help="Top k percent of segments")
     parser.add_argument("--log_freq", type=int, default=1, help="Information display frequence")
     parser.add_argument(
         "--req_segment_count",
@@ -84,7 +84,7 @@ def get_args(description="MILNCE"):
     parser.add_argument(
         "--lrb",
         "--learning-rate-base",
-        default=0.0001,
+        default=0.00003,
         type=float,
         help="base learning rate",
         dest="lr_base",
@@ -92,7 +92,7 @@ def get_args(description="MILNCE"):
     parser.add_argument(
         "--lri",
         "--learning-rate-importance",
-        default=0.0001,
+        default=0.00003,
         type=float,
         help="initial learning rate",
         dest="lr_importance",

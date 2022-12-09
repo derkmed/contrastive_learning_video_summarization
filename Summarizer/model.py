@@ -103,7 +103,7 @@ class PositionalEncoding(nn.Module):
 
 class TCLRSummarizer(nn.Module):
 
-    def __init__(self, saved_model_file: str, d_model: int = 512, freeze_base: bool = True, 
+    def __init__(self, saved_model_file: str = None, d_model: int = 512, freeze_base: bool = True, 
         heads: int = 4, enc_layers: int = 4, dropout: float = 0.1) -> None:
         """
         d_model determines the output embedding dimensionality.
@@ -140,6 +140,21 @@ class TCLRSummarizer(nn.Module):
         logits = self.fc(segment_embeddings)
         return segment_embeddings, logits
  
+def load_summarizer(saved_model_file: str = None, d_model: int = 512, heads: int = 8, enc_layers: int = 6):
+    model = TCLRSummarizer(d_model=d_model, heads=heads, enc_layers=enc_layers)
+
+    if saved_model_file:
+        pretrained = None
+        if torch.cuda.is_available():
+            pretrained = torch.load(saved_model_file)
+        else:
+            pretrained = torch.load(saved_model_file, map_location=torch.device('cpu'))
+        model_kvpair = model.state_dict()        
+        model.load_state_dict(model_kvpair, strict=True)
+        print(f'model {saved_model_file} loaded successsfully!')
+
+    return model
+
 
 def print_param_size(model_state_dict):
     for param_tensor in model_state_dict:
